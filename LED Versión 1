@@ -35,6 +35,6 @@ BSF    LATB, 0  ;Enciende el LED en RB0 (siempre encendido)
 
 
 Loop: 
-GOTO   Loop     ;Bucle infinito (no hace nada)
+GOTO   Loop     ;Bucle infinito (no hace nada más)
 
 END
