@@ -1,0 +1,40 @@
+;Con RB0 (pin 0 puerto B)
+
+;====================================================================================
+;Código en Assembler para PIC18F4550 (provicionalmente sino cambio de microprocesador)
+;Led en RB0 siempre encendido 
+;Frecuencia: 8MHz 
+;Esamblador: MPLAB XC8 3.0
+;====================================================================================
+
+#include <xc.inc>
+
+;Configuraciòn de fuses 
+CONFIG FOSC = INTOSCIO_EC
+CONFIG WDT = OFF
+CONFIG LVP = OFF
+CONFIG PBADEN = OFF 
+
+;==================================================================================
+;Vector de Reset 
+;================================================================================
+PSECT resetVec, class=CODE, reloc=2
+ORG 0x00
+GOTO Inicio 
+
+;================================================================================
+;Programa Principal 
+;===================================================0
+PSECT main_code, class=CODE, reloc=2
+
+
+Inicio: 
+CLRF   TRISB    ;Configura PORTB como salida
+CLRF   LATB     ;Asegura que todos los pines están apagados 
+BSF    LATB, 0  ;Enciende el LED en RB0 (siempre encendido)
+
+
+Loop: 
+GOTO   Loop     ;Bucle infinito (no hace nada)
+
+END
