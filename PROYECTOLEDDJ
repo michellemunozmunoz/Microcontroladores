@@ -1,0 +1,84 @@
+;=======================================
+; Programa: LED ON 5s, OFF 2s
+; Micro: PIC18F4550
+; Compilador : MPLAB X v6.25
+;======================================
+ 
+LIST P=18F4550
+#include <p18f4550.inc>
+CONFIG FOSC = INTOSCIO_EC ; Oscilador Interno
+CONFIG WDT = OFF
+CONFIG LVP = OFF
+CONFIG PBADEN = OFF
+
+ORG 0x0000
+goto INICIO
+
+;-----------------------------------
+;Rutina de retardo
+;Retardo de 1 segundo aproximado
+;(Ajustando a Fosc = 4MHz, ciclo máquina = 1 us)
+;-----------------------------------
+
+RETARDO_1S
+movlw D'250' ; cargar 250 en W
+movwf R1
+LOOP1S1
+movlw D'250'
+movwf R2
+LOOP1S2
+movlw D'16'
+movwf R3
+LOOP1S3
+nop
+nop
+decfsz R3, f
+goto LOOP1S3
+decfsz R2, f
+goto LOOP1S2
+decfsz R1, f
+goto LOOP1S1
+return
+
+;------------------------------------------
+; Programa Principal
+;------------------------------------------
+
+INICIO:
+clrf PORTB ; Limpiar puerto B
+bcf STATUS, RP0
+clrf LATB
+movlw 0x00
+movwf TRISB ; Puerto B como salida
+MAIN:
+; Encender LED 5 segundos
+bsf LATB, 0 ; LED ON en RB0
+movlw D'5'
+movwf CONTADOR1
+RETARDO5S:
+call RETARDO_1S
+decfsz CONTADOR1, f
+goto RETARDO5S
+; Apagar LED 2 segundos
+bcf LATB, 0 ; LED OFF en RB0
+movlw D'2'
+movwf CONTADOR2
+RETARDO2S:
+   call RETARDO_1S
+   decfsz CONTADOR2, f
+   goto RETARDO2S
+
+   goto MAIN ; Repetir Ciclo
+
+;---------------------------------------------
+; Variables
+;--------------------------------------------
+   CBLOCK 0x20
+   R1
+   R2
+   R3 
+   CONTADOR1
+   CONTADOR2
+   ENDC
+
+   END
