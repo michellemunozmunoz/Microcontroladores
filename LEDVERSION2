@@ -1,0 +1,91 @@
+;==========================================
+; Programa: LED ON 5s , OFF 2s
+; Micro: PIC18F4550
+; Compilador:  MPLAB X v6.25
+;==========================================
+
+#include <xc.inc>
+
+; Configuración
+  CONFIG FOSC = INSTOSCIO_EC ; Oscilador Interno
+  CONFIG WDT = OFF
+  CONFIG LVP = OFF
+  CONFIG PBADEN = OFF
+; Variables
+PSECT udata_acs
+R1:             DS 1 
+R2:             DS 1 
+R3:             DS 1
+CONTADOR1:      DS 1 
+CONTADOR2:      DS 1
+
+; Vector de Reset
+PSECT resetVec, class = CODE, reloc = 2
+resetVec:
+   GOTO INICIO
+; Código prncipal
+PSECT code 
+;----------------------------------------
+; Rutina de retardo de 1 segundo aproximado
+;----------------------------------------
+RETARDO_1S:
+  movlw 0xFA      ; cargar 250 en W
+  movwf R1 
+LOOP1S1: 
+  movlw 0xFA      ; cargar 250 en W
+  movwf R2 
+LOOP1S2:
+  movlw 0x20      ; cargar 32 en W (ajustado a 8MHz)
+  movwf R3
+LOOP1S3 
+  NOP             ; consume un ciclo
+  NOP             ; consume un ciclo
+  decfsz R3, f
+  GOTO   LOOP1S3
+  decfsz R2, f
+  GOTO   LOOP1S2
+  decfsz R1, f
+  GOTO   LOOP1S1
+  return
+
+;--------------------------------------
+; Programa Principal
+;--------------------------------------
+
+INICIO 
+; Configurar oscilador interno a 8MHz
+movlw 0x72     ; TRCF = 111 (8MHz), SCS = 10 (Oscilador Interno)
+movwf OSSCON 
+
+; Configurar Puerto B como salida 
+clrf LATB      ; Limpiar latch del puerto B
+movlw 0x00     ; Todos los pines como salida
+movwf TRISB    
+
+clrf  PORTB    ; Limpiar puerto B
+
+MAIN: 
+; Encender LED 5 segundos 
+bsf LATB, 0    ; LED ON en RB0
+movlw 0x05     ; 5 iteraciones
+movwf CONTADOR1
+RETARDO5S: 
+call RETARDO_1S
+decfsz CONTADOR1, f
+GOTO RETARDO5S
+
+; Apagar LED 2 segundos
+bcf LATB, 0    ; LED OFF en RB0
+movlw 0x02     ; 2 iteraciones
+movwf CONTADOR2
+RETARDO2S:
+call RETARDO_1S
+decfsz CONTADOR2, f
+GOTO RETARDO2S
+
+GOTO MAIN      ; Repetir Ciclo
+
+END
+
+
+  
