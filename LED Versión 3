@@ -18,5 +18,31 @@ Contador12   EQU 0x23
 ORG 0x00
 GOTO inicio
 
+; ------------------------------
+inicio:
+; Configurar oscilador interno 8MHz
+BANKSEL OSCCON
+MOVLW 0x70    ; IRCF2:IRCF0=111 para 8MHz, SCS=01 no interno propio de PIC18F452
+MOVWF OSCCON, A
+; Espera un poco para estabilizar reloj (opcional)
+NOP
+NOP
+NOP
+NOP
+
+; Configurar PORTD como salida
+    BANKSEL TRISD
+CLRF    TRISD, A       ; Puerto D como salida
+
+    BANKSEL LATD
+    CLRF    LATD, A        ; Apaga LEDs inicialmente
+
+loop:
+    BANKSEL LATD
+    BSF     LATD, 0, A     ; Enciende LED en RD0
+    CALL    retraso5s
+    BCF     LATD, 0, A     ; Apaga LED en RD0
+    CALL    retraso2s
+    GOTO    loop
 
  
