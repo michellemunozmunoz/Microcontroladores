@@ -1,0 +1,11 @@
+;Archivo: LED.asm
+; Configuración para PIC18F452, MPLAB X IDE v6.25
+; Enciende LED 5s y apaga 2s usando reloj interno 8MHz 
+
+#include <xc.inc>
+; CONFIGURACIÓN DEL MICROCONTROLADOR
+; Oscilador interno OSCCON, pines RA6 y RA7 como I/O
+CONFIG  WDT = OFF       ; Watchdog Timer off
+CONFIG  LVP = OFF       ; Low voltage programming off
+CONFIG  PBADEN = OFF    ; PORTB<4:0> digital
+ 
