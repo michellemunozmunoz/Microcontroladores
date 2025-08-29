@@ -8,4 +8,15 @@
 CONFIG  WDT = OFF       ; Watchdog Timer off
 CONFIG  LVP = OFF       ; Low voltage programming off
 CONFIG  PBADEN = OFF    ; PORTB<4:0> digital
+
+; Variables en RAM, en BANK0 usando variables de lugar seguro
+Contador1    EQU 0x20
+Contador2    EQU 0x21
+Contador3    EQU 0x22
+Contador12   EQU 0x23
+
+ORG 0x00
+GOTO inicio
+
+
  
