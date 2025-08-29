@@ -21,54 +21,54 @@ goto INICIO
 ;-----------------------------------
 
 RETARDO_1S
-movlw D'250' ; cargar 250 en W
-movwf R1
+   movlw D'250' ; cargar 250 en W
+   movwf R1
 LOOP1S1
-movlw D'250'
-movwf R2
+   movlw D'250'
+   movwf R2
 LOOP1S2
-movlw D'16'
-movwf R3
+   movlw D'16'
+   movwf R3
 LOOP1S3
-nop
-nop
-decfsz R3, f
-goto LOOP1S3
-decfsz R2, f
-goto LOOP1S2
-decfsz R1, f
-goto LOOP1S1
-return
+   NOP
+   NOP
+   decfsz R3, f
+   GOTO LOOP1S3
+   decfsz R2, f
+   GOTO LOOP1S2
+   decfsz R1, f
+   GOTO LOOP1S1
+   return
 
 ;------------------------------------------
 ; Programa Principal
 ;------------------------------------------
 
 INICIO:
-clrf PORTB ; Limpiar puerto B
-bcf STATUS, RP0
-clrf LATB
-movlw 0x00
-movwf TRISB ; Puerto B como salida
+   clrf PORTB ; Limpiar puerto B
+   bcf STATUS, RP0
+   clrf LATB
+   movlw 0x00
+   movwf TRISB ; Puerto B como salida
 MAIN:
 ; Encender LED 5 segundos
-bsf LATB, 0 ; LED ON en RB0
-movlw D'5'
-movwf CONTADOR1
+   bsf LATB, 0 ; LED ON en RB0
+   movlw D'5'
+   movwf CONTADOR1
 RETARDO5S:
-call RETARDO_1S
-decfsz CONTADOR1, f
-goto RETARDO5S
+   call RETARDO_1S
+   decfsz CONTADOR1, f
+   goto RETARDO5S
 ; Apagar LED 2 segundos
-bcf LATB, 0 ; LED OFF en RB0
-movlw D'2'
-movwf CONTADOR2
+   bcf LATB, 0 ; LED OFF en RB0
+   movlw D'2'
+   movwf CONTADOR2
 RETARDO2S:
    call RETARDO_1S
    decfsz CONTADOR2, f
-   goto RETARDO2S
+   GOTO RETARDO2S
 
-   goto MAIN ; Repetir Ciclo
+   GOTO MAIN ; Repetir Ciclo
 
 ;---------------------------------------------
 ; Variables
