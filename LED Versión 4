@@ -72,3 +72,20 @@ bucle12:
     GOTO bucle12
     RETURN 
 
+; RETARDO DE 100ms (basado en 8MHz)
+retraso100ms:
+    MOVLW 250        
+    MOVWF Contador2
+bucle2:
+    MOVLW 250
+    MOVWF Contador3
+bucle3:
+    NOP
+    NOP
+    DECFSZ Contador3
+    GOTO bucle3
+    DECFSZ Contador2
+    GOTO bucle2
+    RETURN
+
+    END
