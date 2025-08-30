@@ -12,3 +12,9 @@
     CONFIG  LVP = OFF       ; Low voltage programming off
     CONFIG  PBADEN = OFF    ; PORTB<4:0> digital
     CONFIG  FOSC = INTOSC_EC 
+
+; Variables en RAM, en BANK0 usando variables de lugar seguro
+    Contador1    EQU 0x20
+    Contador2    EQU 0x21
+    Contador3    EQU 0x22
+    Contador12   EQU 0x23
