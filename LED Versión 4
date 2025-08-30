@@ -60,3 +60,15 @@ bucle1:
     DECFSZ Contador1
     GOTO bucle1
     RETURN 
+
+
+; RETARDO DE 2 SEGUNDOS (2000 ms)
+retraso2s:
+    MOVLW 20         
+    MOVWF Contador12
+bucle12:
+    CALL retraso100ms
+    DECFSZ Contador12
+    GOTO bucle12
+    RETURN 
+
