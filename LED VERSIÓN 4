@@ -1,0 +1,5 @@
+; Archivo: LED.asm
+; Configuración para PIC18F452, MPLAB X IDE v6.25
+; Enciende LED 5s y apaga 2s usando reloj interno 8MHz
+; Con indicaciones del docente, corregí unos errores de sintaxis como colocar ",A" al lado de " MOVLW ", y demás letras, a su vez se mencionó la falta de "CONFIG  FOSC = INTOSC_EC"
+; Sin embargo, el código carece de lógica, al usar funciones con GOTO 
