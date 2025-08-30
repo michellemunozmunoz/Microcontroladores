@@ -18,3 +18,19 @@
     Contador2    EQU 0x21
     Contador3    EQU 0x22
     Contador12   EQU 0x23
+
+    ORG 0x00
+    GOTO inicio
+
+; ------------------------------
+inicio:
+    ; Configurar oscilador interno 8MHz
+    BANKSEL OSCCON
+    MOVLW 0x70    ; 
+    MOVWF OSCCON
+
+    ; Espera un poco para estabilizar reloj
+    NOP
+    NOP
+    NOP
+    NOP
