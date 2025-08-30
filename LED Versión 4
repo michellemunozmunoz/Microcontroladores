@@ -34,3 +34,20 @@ inicio:
     NOP
     NOP
     NOP
+
+
+  ; Configurar PORTD como salida
+    BANKSEL TRISD
+    CLRF    TRISD       ; Puerto D como salida
+
+    BANKSEL LATD
+    CLRF    LATD       ; Apaga LEDs inicialmente
+
+loop:
+    BANKSEL LATD
+    BSF     LATD, 0     ; Enciende LED en RD0
+    CALL    retraso5s
+    BCF     LATD, 0    ; Apaga LED en RD0
+    CALL    retraso2s
+    GOTO    loop
+
