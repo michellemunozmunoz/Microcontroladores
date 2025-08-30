@@ -51,3 +51,12 @@ loop:
     CALL    retraso2s
     GOTO    loop
 
+; RETARDO DE 5 SEGUNDOS (5000 ms)
+retraso5s:
+    MOVLW 50       
+    MOVWF Contador1
+bucle1:
+    CALL retraso100ms
+    DECFSZ Contador1
+    GOTO bucle1
+    RETURN 
