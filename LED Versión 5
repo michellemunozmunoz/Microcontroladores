@@ -25,3 +25,12 @@ inicio:
     BANKSEL LATD
     CLRF    LATD
     GOTO loop
+
+loop:
+    BANKSEL LATD
+    BSF     LATD, 0
+    CALL    retraso5s
+    BCF     LATD, 0
+    CALL    retraso2s
+    GOTO    loop
+
