@@ -43,6 +43,12 @@ bucle1:
     GOTO bucle1
     RETURN
 
+retraso100ms:
+    MOVLW 250
+    MOVWF Contador2
+bucle2:
+    MOVLW 250
+    MOVWF Contador3
 
 
 
