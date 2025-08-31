@@ -1,0 +1,11 @@
+;
+#include <xc.inc>
+
+CONFIG  WDT = OFF
+CONFIG  LVP = OFF
+CONFIG  FOSC = HS
+
+Contador1    EQU 0x20
+Contador2    EQU 0x21
+Contador3    EQU 0x22
+Contador12   EQU 0x23
