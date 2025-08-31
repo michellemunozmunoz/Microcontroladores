@@ -19,3 +19,9 @@ inicio:
     NOP 
     NOP
     NOP 
+
+  BANKSEL TRISD
+    CLRF    TRISD
+    BANKSEL LATD
+    CLRF    LATD
+    GOTO loop
