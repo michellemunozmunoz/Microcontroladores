@@ -34,3 +34,15 @@ loop:
     CALL    retraso2s
     GOTO    loop
 
+retraso5s:
+    MOVLW 50
+    MOVWF Contador1
+bucle1:
+    CALL retraso100ms
+    DECFSZ Contador1, F
+    GOTO bucle1
+    RETURN
+
+
+
+
