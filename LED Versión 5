@@ -50,5 +50,15 @@ bucle2:
     MOVLW 250
     MOVWF Contador3
 
+bucle3:
+    NOP
+    NOP
+    DECFSZ Contador3, F
+    GOTO bucle3
+    DECFSZ Contador2, F
+    GOTO bucle2
+    RETURN
+
+END
 
 
