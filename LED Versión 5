@@ -1,4 +1,5 @@
-;
+;Utilizando el PIC18F452
+
 #include <xc.inc>
 
 CONFIG  WDT = OFF
