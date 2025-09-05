@@ -1,70 +1,84 @@
-#include <xc.inc>
-; CONFIGURACION DEL MICROCONTROLADOR 
-CONFIG  PLLDIV = 1            
-CONFIG  CPUDIV = OSC1_PLL2    
-CONFIG  USBDIV = 2            
-CONFIG  FOSC = INTOSCIO_EC    
-CONFIG  WDT = OFF            
-CONFIG MCLRE= OFF
-CONFIG  LVP = OFF  
+; Ajustes de configuración del PIC18F4550
 
-;VARIABLES EN MEMORIA
-Contador1 EQU 0x20
-Contador2 EQU 0x21
-Contador3 EQU 0x22
-Contador12 EQU 0x23
-Contador22 EQU 0x24
-Contador32 EQU 0x25
+  CONFIG  FOSC = INTOSC_EC      ; Emplear oscilador interno de 8MHz
+  CONFIG  WDT = OFF             ; Inhibir el temporizador de vigilancia 
+  CONFIG  PBADEN = OFF          ; Establecer pines de PORTB como digitales
+  CONFIG  LVP = OFF             ; Deshabilitar programación por bajo voltaje
 
-ORG 0x00
-    GOTO inicio 
-inicio:
-  MOVLW 0x70           ;Configuracion del oscilador interni a 8MHz
-  MOVWF OSCCON
+  
+; Incorporar definiciones específicas del PIC18F4550
+#include <xc.inc> 
+  
+  PSECT vector_reset, class=CODE, reloc=2 ; Punto de entrada tras reset
+  
+  ORG 0x00 ; Dirección inicial tras reset
+  GOTO Configuracion_Inicial ; Saltar a rutina de inicialización
+  
+  PSECT codigo_principal, class=CODE, reloc=2 ; Segmento de código principal
+  
+  Configuracion_Inicial:
+    ; Ajustar frecuencia del oscilador interno a 8MHz
+    MOVLW 0b01110010 ; Patrón binario para oscilador de 8MHz
+    MOVWF OSCCON     ; Transferir al registro de control del oscilador
+    
+    CLRF TRISB       ; Definir todo PORTB como salidas
+    CLRF LATB        ; Poner todos los pines de PORTB en estado bajo
+    GOTO LED_Activar ; Comenzar ciclo con LED activado
+    
+  LED_Activar:
+    BSF LATB, 0      ; Establecer pin RB0 en alto (LED encendido)
+    MOVLW 5          ; Preparar valor de 5 unidades de tiempo
+    MOVWF Contador_Temporal ; Almecenar duración de activación
+    
+ Bucle_Activacion:
+    CALL Pausa_1segundo ; Invocar retardo de un segundo
+    DECFSZ Contador_Temporal, F ; Reducir contador, saltar si llega a cero
+    GOTO Bucle_Activacion ; Reiterar mientras no sea cero
+    GOTO LED_Desactivar ; Proceder a desactivar LED
+    
+ LED_Desactivar:
+    BCF LATB, 0      ; Poner pin RB0 en bajo (LED apagado)
+    MOVLW 2          ; Preparar valor de 2 unidades de tiempo
+    MOVWF Contador_Temporal ; Almecenar duración de desactivación
+    
+ Bucle_Desactivacion:
+    CALL Pausa_1segundo ; Invocar retardo de un segundo
+    DECFSZ Contador_Temporal, F ; Reducir contador, saltar si llega a cero
+    GOTO Bucle_Desactivacion ; Reiterar mientras no sea cero
+    GOTO LED_Activar ; Reiniciar ciclo de activación
+    
+; === Retardo de 1 segundo ====
+  Pausa_1segundo:
+    MOVLW 8          ; Valor para contador de bucle exterior
+    MOVWF Contador_Externo ; Guardar en variable de bucle externo
+    
+  Bucle_Externo:
+    MOVLW 200        ; Valor para contador de bucle intermedio
+    MOVWF Contador_Intermedio ; Guardar en variable de bucle medio
+    
+  Bucle_Intermedio:
+    MOVLW 250        ; Valor para contador de bucle interior
+    MOVWF Contador_Interno ; Guardar en variable de bucle interno
+    
+  Bucle_Interno:
+    NOP              ; Instrucción sin operación (consumir ciclo)
+    NOP              ; Instrucción sin operación (consumir ciclo)
+    NOP              ; Instrucción sin operación (consumir ciclo)
+    DECFSZ Contador_Interno, F ; Decrementar contador interno
+    GOTO Bucle_Interno ; Repetir bucle interno
+    DECFSZ Contador_Intermedio, F ; Decrementar contador intermedio
+    GOTO Bucle_Intermedio ; Repetir bucle intermedio
+    DECFSZ Contador_Externo, F ; Decrementar contador externo
+    GOTO Bucle_Externo ; Repetir bucle externo
+    
+    RETURN           ; Regresar de subrutina cuando llegan a cero
+    
+    PSECT datos_uso
+    Contador_Externo:   DS 1 ; Reservar espacio (byte) para contador externo
+    Contador_Intermedio: DS 1 ; Reservar espacio (byte) para contador intermedio
+    Contador_Interno:    DS 1 ; Reservar espacio (byte) para contador interno
+    Contador_Temporal:   DS 1 ; Reservar espacio(byte) para contador temporal
+ 
+  END 
 
-  CLRF TRISD
-  CLRF LATD
 
-Loop: 
-    BSF LATD, 0
-    CALL retraso5s
-    BCF LATC, 0
-    CALL retraso2s
-    GOTO Loop
-
-; RETARDO DE 5 SEGUNDOS
-retardo5s:
-    MOVLW D'50'
-    MOVWF contador1
-bucle1:
-    CALL retardo100ms
-    DECFSZ contador1, F
-    GOTO bluque1 
-    RETURN
-
-; RETARDO DE 2 SEGUNDOS
-retardo2s:
-    MOVLW D'20'
-    MOVWF contador12
-bucle12:
-    CALL retardo100ms
-    DECFSZ contador12, F
-    GOTO bluque12 
-    RETURN
-;RETARDO DE 100ms (BASADO EN 8MHz)
-retraso100ms:
-    MOVLW D'250'         
-    MOVWF Contador2
-bucle2:
-    MOVLW D'250'
-    MOVWF Contador3
-bucle3:
-    NOP
-    NOP
-    DECFSZ Contador3, F
-    GOTO bucle3
-    DECFSZ Contador2, F
-    GOTO bucle2
-    RETURN
-
-END
