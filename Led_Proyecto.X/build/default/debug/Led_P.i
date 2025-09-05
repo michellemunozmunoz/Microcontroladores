@@ -5481,7 +5481,7 @@ ENDM
 
  EncendidoLoop:
     CALL Espera_1s
-    DECFSZ SegundosContador
+    DECFSZ SegundosContador , F
     GOTO EncendidoLoop
     GOTO Apagado
 
@@ -5492,7 +5492,7 @@ ENDM
 
  ApagadoLoop:
     CALL Espera_1s
-    DECFSZ SegundosContador
+    DECFSZ SegundosContador , F
     GOTO ApagadoLoop
     GOTO Encendido
 ; === Espera_1s ====
@@ -5516,11 +5516,11 @@ ENDM
     NOP
     NOP
 
-    DECFSZ ContadorInterno
+    DECFSZ ContadorInterno , F
     GOTO LoopInterno
-    DECFSZ ContadorMedio
+    DECFSZ ContadorMedio , F
     GOTO LoopMedio
-    DECFSZ ContadorExterno
+    DECFSZ ContadorExterno , F
     GOTO LoopExterno
 
     RETURN

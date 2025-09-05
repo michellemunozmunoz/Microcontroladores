@@ -1,24 +1,22 @@
-# 1 "Led_P.asm"
+# 1 "Boton_Led.asm"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
 # 286 "<built-in>" 3
 # 1 "<command line>" 1
 # 1 "<built-in>" 2
-# 1 "Led_P.asm" 2
+# 1 "Boton_Led.asm" 2
+
 ;=======================================
-;Codigo para PIC18F4550 en Assembler
-;Led en RB0 encendido 5s y apagado 2s
-;Oscilador interno a 4Mhz
+; Codigo para PIC18F4550 en Assembler
+; LED en RB0 controlado por botón en RB1
+; Oscilador interno a 4MHz
 ;=======================================
-; PIC18F4550 Configuracion de bits
 
-  CONFIG FOSC = INTOSC_EC ;Utilizar oscilador interno de 8MHz
-  CONFIG WDT = OFF ;Desactiva el Watchdog timer
-  CONFIG PBADEN = OFF ;Configura los PORTB como digitales
-  CONFIG LVP = OFF ; Desactiva la programacion a bajo voltage
+  CONFIG FOSC = INTOSC_EC
+  CONFIG WDT = OFF
+  CONFIG PBADEN = OFF
+  CONFIG LVP = OFF
 
-
-;Incluir definiciones para el PIC18F4550
 # 1 "C:\\Program Files\\Microchip\\xc8\\v3.00\\pic\\include/xc.inc" 1 3
 
 
@@ -5456,79 +5454,31 @@ stk_offset SET 0
 auto_size SET 0
 ENDM
 # 6 "C:\\Program Files\\Microchip\\xc8\\v3.00\\pic\\include/xc.inc" 2 3
-# 16 "Led_P.asm" 2
+# 14 "Boton_Led.asm" 2
 
-  PSECT resetVec, class=CODE, reloc=2 ;Vector de reinicio
+  PSECT resetVec, class=CODE, reloc=2
+  ORG 0x00
+  GOTO Inicio
 
-  ORG 0x00 ;Vector reset
-  GOTO Inicio ;Va a Inicio
+  PSECT main_code, class=CODE, reloc=2
 
-  PSECT main_code, class=CODE, reloc=2 ;Codigo principal
-
-  Inicio:
-
-    MOVLW 0b01100010 ;valores binarios necesarios para el reloj de 4MHz
+Inicio:
+    ; Configuración del oscilador a 4 MHz
+    MOVLW 0b01100010
     MOVWF OSCCON
 
-    CLRF TRISB ;PORTB como salida
-    CLRF LATB ;inicio puerto en 0
-    GOTO Encendido
+    CLRF LATB ; Limpia puerto B
+    BSF TRISB, 1 ; ((PORTB) and 0FFh), 1, a como entrada (botón)
+    BCF TRISB, 0 ; ((PORTB) and 0FFh), 0, a como salida (LED)
 
-  Encendido:
-    BSF LATB, 0 ;prendo led en ((PORTB) and 0FFh), 0, a
-    MOVLW 5
-    MOVWF SegundosContador ;5 segundos prendido
+LoopPrincipal:
+    BTFSS PORTB, 1 ; Revisa si el botón en ((PORTB) and 0FFh), 1, a está presionado (1 = suelto, 0 = presionado si pull-down)
+    GOTO BotonPresionado
+    BCF LATB, 0 ; Apaga LED si botón no presionado
+    GOTO LoopPrincipal
 
- EncendidoLoop:
-    CALL Espera_1s
-    DECFSZ SegundosContador
-    GOTO EncendidoLoop
-    GOTO Apagado
+BotonPresionado:
+    BSF LATB, 0 ; Enciende LED si botón presionado
+    GOTO LoopPrincipal
 
- Apagado:
-    BCF LATB, 0 ;apago led
-    MOVLW 2
-    MOVWF SegundosContador ;2 segundos apagado
-
- ApagadoLoop:
-    CALL Espera_1s
-    DECFSZ SegundosContador
-    GOTO ApagadoLoop
-    GOTO Encendido
-; === Espera_1s ====
-  Espera_1s:
-    MOVLW 5
-    MOVWF ContadorExterno ;Guarda en la variable ContadorExterno
-
-  LoopExterno:
-    MOVLW 100
-    MOVWF ContadorMedio ;Guarda en la variable ContadorMedio
-
-  LoopMedio:
-    MOVLW 250
-    MOVWF ContadorInterno ;Guarda en la variable ContadorInterno
-
-  LoopInterno:
-    NOP ;Consume un ciclo
-    NOP ;6 NOP para ajustar ciclos
-    NOP
-    NOP
-    NOP
-    NOP
-
-    DECFSZ ContadorInterno
-    GOTO LoopInterno
-    DECFSZ ContadorMedio
-    GOTO LoopMedio
-    DECFSZ ContadorExterno
-    GOTO LoopExterno
-
-    RETURN
-
-    PSECT udata
-    ContadorExterno: DS 1
-    ContadorMedio: DS 1
-    ContadorInterno: DS 1
-    SegundosContador: DS 1
-
-  END ;Fin
+  END
