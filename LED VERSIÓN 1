@@ -1,9 +1,131 @@
-;=======================================
+;======================================
 ; Programa: LED ON 5s, OFF 2s
 ; Micro: PIC18F4550
 ; Compilador : MPLAB X v6.25
+; Función: Enciende LED en RB0 por 5000 ms y lo apaga por 2000 ms
+; Frecuencia: 8 MHz (Oscilador Interno)
+; Incluye Botón
 ;======================================
- 
+
+ ;---------------------------------------
+ ;Configuración de Bits
+ ;---------------------------------------
+  
+CONFIG FOSC = INTOSC_EC ; Oscilador interno a 8MHz
+CONFIG WDT = OFF   
+CONFIG LVP = OFF
+CONFIG PBADEN = OFF
+
+#include <xc.inc>
+
+;-----------------------------------------
+; Vector de Reset
+;-----------------------------------------
+PSECT resetVec, class= CODE, reloc=2
+ORG 0x00
+GOTO Inicio 
+
+;------------------------------------------
+;Programa Principal 
+;------------------------------------------
+PSECT main_code, class = CODE, reloc = 2
+Inicio:
+
+MOVLW 0b01110010 ;
+MOVWF OSCCON
+
+MOVLW 0b00010000
+MOVWF TRISB
+CLRF LATB
+GOTO Loop
+
+Loop:    ; Bucle principal, se repite con GOTO
+
+   BTFSC PORTB, 4 ;
+   GOTO LedOFF
+
+BSF LATB, 0 
+BCF LATB, 1
+BSF LATB, 2
+BCF LATB, 3
+
+MOVLW 5
+MOVWF Ciclos
+DelayOn:
+  CALL Retardo_1s
+DECF 
+SZ Ciclos, F
+GOTO DelayOn
+GOTO Apagado
+
+;Apagar LEDs 2 segundos
+CLRF LATB
+MOVLW 2
+MOVWF Ciclos
+
+Apagado:
+CLRF LATB
+MOVLW 2
+MOVWF Ciclos
+
+DelayOff:
+CALL Retardo_1s 
+DECFSZ Ciclos, F
+GOTO DelayOff
+GOTO Loop
+
+LedOFF:
+CLRF LATB
+GOTO Loop
+
+;-----------------------------------------------
+; Subrutina: Retardo de menos de 1 segundo
+;-----------------------------------------------
+
+Retardo_1s : 
+MOVLW 8
+MOVWF ContadorExterno
+
+LoopExterno:
+MOVLW 200
+MOVWF ContadorMedio
+
+LoopMedio:
+MOVLW 250
+MOVWF LoopInterno
+
+LoopInterno:
+NOP
+NOP
+NOP
+
+DECFSZ ContadorInterno , F
+GOTO LoopInterno
+
+DECFSZ ContadorMedio, F
+GOTO LoopMedio 
+
+DECFSZ ContadorExterno, F
+GOTO LoopExterno
+
+RETURN  ; Recordar, subrutina SIEMPRE termina en RETURN
+
+;----------------------------------------------------
+; Variables
+;----------------------------------------------------
+
+PSECT udata
+ContadorExterno: DS 1
+ContadorInterno : DS 1
+ContadorMedio: DS 1
+Ciclos: DS 1
+
+END
+     
+
+
+
+
 LIST P=18F4550
 #include <p18f4550.inc>
 CONFIG FOSC = INTOSCIO_EC ; Oscilador Interno
