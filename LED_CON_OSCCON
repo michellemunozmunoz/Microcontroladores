@@ -1,0 +1,80 @@
+Hola profe este código es de una versión prematura que tiene el OSCCON (realizado hace unas 2 semanas atrás en MPLAB), estoy haciendo otro archivo para evidenciarle mi progreso
+#include <xc.inc>
+
+CONFIG FOSC = INTOSCIO_EC
+CONFIG WDT = OFF
+CONFIG LVP = OFF
+CONFIG PBADEN = OFF
+
+PSECT udata_acs
+R1: DS 1
+R2: DS 1
+R3: DS 1
+CONTADOR1: DS 1
+CONTADOR2: DS 1
+
+;Vector de reset 
+PSECT resetVec, class=CODE, reloc=2
+resetVec:
+GOTO INICIO
+
+;Código Principal
+PSECT code
+;--------------------------------------------
+; Rutina de retardo de 1 segundo aproximado
+; (Ajustado a Fosc = 8MHz, ciclo máquina = 0.5us)
+;--------------------------------------------
+
+RETARDO_1S:
+ MOVLW 0xFA
+ MOVWF R1
+LOOP1S1:
+ MOVLW 0xFA
+ MOVWF R2
+LOOP1S2:
+ MOVLW 0x20
+ MOVWF R3
+LOOP1S3:
+ NOP
+ NOP
+ DECFSZ R3, f
+ GOTO LOOP1S3
+ DECFSZ R2, f
+ GOTO LOOP1S2
+ DECFSZ R1, f
+ GOTO LOOP1S1
+ RETURN
+
+; Programa Principal
+
+INICIO: 
+ ; Configurar oscilador interno a 8MHz
+ MOVLW 0x72 
+ MOVWF OSCCON
+ ; Configurar Puerto B como salida
+ CLRF LATB
+ MOVLW 0x00
+ MOVWF TRISB 
+
+ CLRF PORTB 
+MAIN:
+ ; Encender LED 5 segundos
+ BSF LATB, 0
+ MOVLW 0x05
+ MOVWF CONTADOR1
+RETARDO5S:
+ CALL RETARDO_1S
+ DECFSZ CONTADOR1, f
+ GOTO RETARDO5S
+; Apagar LED 2 segundos
+
+ BCF LATB, 0 
+ MOVLW 0x02
+ MOVWF CONTADOR2
+RETARDO2S:
+ CALL RETARDO_1S
+ DECFSZ CONTADOR2, f
+ GOTO RETARDO2S
+
+ GOTO MAIN        ; Repetir Ciclo 
+END
