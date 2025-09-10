@@ -1,3 +1,4 @@
+;Profe en teoria este codigo se debió haber subido hace 1 semana atrás, pero por algún motivo o razón que desconozco se borró ese commit
 #include <xc.inc>
 CONFIG FOSC = INTOSCIO_EC
 CONFIG WDT = OFF
