@@ -4,7 +4,7 @@
 
 CONFIG  WDT = OFF
 CONFIG  LVP = OFF
-CONFIG  FOSC = HS
+CONFIG  FOSC = HS  ;Configuración oscilador externo
 
 Contador1    EQU 0x20
 Contador2    EQU 0x21
@@ -38,6 +38,7 @@ loop:
 retraso5s:
     MOVLW 50
     MOVWF Contador1
+
 bucle1:
     CALL retraso100ms
     DECFSZ Contador1, F
@@ -47,6 +48,7 @@ bucle1:
 retraso100ms:
     MOVLW 250
     MOVWF Contador2
+
 bucle2:
     MOVLW 250
     MOVWF Contador3
