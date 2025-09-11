@@ -1,8 +1,9 @@
 ;======================================
-; Programa: LED ON 5s, OFF 2s
+; Programa: Secuencia LEDs con cambio por botón
 ; Micro: PIC18F4550
 ; Compilador : MPLAB X v6.25
-; Función: Enciende LED en RB0 por 5000 ms y lo apaga por 2000 ms
+; Función: 4 LEDs (RB0-RB3) encienden en secuencia. 
+;          Con botón en RB4 cambia la secuencia.
 ; Frecuencia: 8 MHz (Oscilador Interno)
 ; Incluye Botón
 ;======================================
@@ -31,23 +32,47 @@ GOTO Inicio
 PSECT main_code, class = CODE, reloc = 2
 Inicio:
 
+; Oscilador a 8MHz
 MOVLW 0b01110010 ;
 MOVWF OSCCON
 
+; RB0 - RB3 como salidas, RB4 como entrada
 MOVLW 0b00010000
 MOVWF TRISB
 CLRF LATB
+
+Loop:  
+   GOTO SecuenciaNormal
+
+;------------------------------------------------
+; Secuencia Normal: RB0 --> RB1 --> RB2 --> RB3
+;------------------------------------------------
+SecuenciaNormal:
+BSF LATB, 0
+CALL Retardo_500ms
+CLRF LATB
+
+BSF LATB, 1
+CALL Retardo_500ms
+CLRF LATB
+
+BSG LATB, 2
+CALL Retardo_500ms
+CLRF LATB
+
+BSF LATB, 3
+CALL Retardo_500ms
+CLRF LATB
+
 GOTO Loop
+;------------------------------------------------
+;Secuencia invertida
+;------------------------------------------------
 
-Loop:    ; Bucle principal, se repite con GOTO
+SecuenciaInvertida:
+BSF LATB 3
 
-   BTFSC PORTB, 4 ;
-   GOTO LedOFF
 
-BSF LATB, 0 
-BCF LATB, 1
-BSF LATB, 2
-BCF LATB, 3
 
 MOVLW 5
 MOVWF Ciclos
