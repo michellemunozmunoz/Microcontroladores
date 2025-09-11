@@ -5,10 +5,11 @@
    #include <xc.inc>
 
 ; CONFIGURACIÓN DEL MICROCONTROLADOR
-       ; Oscilador interno OSCCON, pines RA6 y RA7 como I/O
-    CONFIG  WDT = OFF       ; Watchdog Timer off
-    CONFIG  LVP = OFF       ; Low voltage programming off
-    CONFIG  PBADEN = OFF    ; PORTB<4:0> digital
+       ; Oscilador interno OSCCON
+
+    CONFIG  WDT = OFF       
+    CONFIG  LVP = OFF       
+    CONFIG  PBADEN = OFF
 
 ; Variables en RAM, en BANK0 usando variables de lugar seguro
     Contador1    EQU 0x20
@@ -22,11 +23,11 @@
 ; ------------------------------
 inicio:
     ; Configurar oscilador interno 8MHz
-    BANKSEL OSCCON
-    MOVLW 0x70    ; IRCF2:IRCF0=111 para 8MHz, SCS=01 no interno propio de PIC18F452
+    BANKSEL OSCCON ;Luego de revisar los códigos, encontré el error de las versiones del PIC18F452, ya que al leer el manual del mismo, me di cuenta de que no tiene oscilador interno, pot lo que la función OSCCON no es requerida. 
+    MOVLW 0x70    ; IRCF2:IRCF0=111 para 8MHz, SCS=01 
     MOVWF OSCCON, A
 
-    ; Espera un poco para estabilizar reloj (opcional)
+    ; Espera un poco para estabilizar reloj 
     NOP
     NOP
     NOP
