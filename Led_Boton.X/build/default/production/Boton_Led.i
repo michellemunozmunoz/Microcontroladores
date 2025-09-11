@@ -5,7 +5,6 @@
 # 1 "<command line>" 1
 # 1 "<built-in>" 2
 # 1 "Boton_Led.asm" 2
-
 ;=======================================
 ; Codigo para PIC18F4550 en Assembler
 ; LED en RB0 controlado por botón en RB1
@@ -5454,7 +5453,7 @@ stk_offset SET 0
 auto_size SET 0
 ENDM
 # 6 "C:\\Program Files\\Microchip\\xc8\\v3.00\\pic\\include/xc.inc" 2 3
-# 14 "Boton_Led.asm" 2
+# 13 "Boton_Led.asm" 2
 
   PSECT resetVec, class=CODE, reloc=2
   ORG 0x00
