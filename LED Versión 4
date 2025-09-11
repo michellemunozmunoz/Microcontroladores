@@ -7,9 +7,9 @@
 #include <xc.inc>
 
 ; CONFIGURACIÓN DEL MICROCONTROLADOR
-       ; Oscilador interno OSCCON, pines RA6 y RA7 como I/O
-    CONFIG  WDT = OFF       ; Watchdog Timer off
-    CONFIG  LVP = OFF       ; Low voltage programming off
+       ; Oscilador interno OSCCON, pines RA6 y RA7 como I/O ;Ya se mencionó en la versión anterior, que este PIC no cuenta con oscilador interno
+    CONFIG  WDT = OFF       
+    CONFIG  LVP = OFF       
     CONFIG  PBADEN = OFF    ; PORTB<4:0> digital
     CONFIG  FOSC = INTOSC_EC 
 
