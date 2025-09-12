@@ -5461,6 +5461,8 @@ ENDM
 
   PSECT main_code, class=CODE, reloc=2
 
+  ;----------Inicio----------------
+
 Inicio:
     ; Configuración del oscilador a 4 MHz
     MOVLW 0b01100010
@@ -5542,7 +5544,7 @@ Inicio:
     CALL Retardo_200ms
 
     CALL RevisaBoton1
-    GOTO Secuencia1
+    GOTO Secuencia2
 
   ;----------Secuencia 2 (Pares-Impares)-------------
   Secuencia2:
@@ -5559,7 +5561,7 @@ Inicio:
     CALL Retardo_200ms
 
     CALL RevisaBoton2
-    GOTO Secuencia2
+    GOTO Secuencia3
 
     ;-----------Secuencia 3 (extremo-centro)--------------
     Secuencia3:
@@ -5580,23 +5582,23 @@ Inicio:
     CALL Retardo_500ms
 
     CALL RevisaBoton3
-    GOTO Secuencia3
+    GOTO Secuencia1
 
     ;------ Subrutinas para Botón-------
 
     RevisaBoton1:
-    BTFSS PORTB,4
-    GOTO Secuencia2 ;si está presionado, cambia a secuencia 2
+    BTFSS PORTB,0
+    GOTO Secuencia1 ;si está presionado, cambia a secuencia 2
     RETURN
 
     RevisaBoton2:
-    BTFSS PORTB,4
-    GOTO Secuencia3 ;si está presionado, cambia a secuencia 3
+    BTFSS PORTB,0
+    GOTO Secuencia2 ;si está presionado, cambia a secuencia 3
     RETURN
 
     RevisaBoton3:
-    BTFSS PORTB,4
-    GOTO Secuencia1 ;si está presionado, cambia a secuencia 1
+    BTFSS PORTB,0
+    GOTO Secuencia3 ;si está presionado, cambia a secuencia 1
     RETURN
 
    ;-----------Subrutinas de retardo---------------
@@ -5647,4 +5649,4 @@ Inicio:
     ContadorMedio: DS 1
     ContadorInterno: DS 1
 
-  END
+  END ;fin
