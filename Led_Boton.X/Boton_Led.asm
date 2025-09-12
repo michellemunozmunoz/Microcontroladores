@@ -100,7 +100,8 @@ Inicio:
     CALL RevisaBoton1
     GOTO Secuencia1
     
-  ;----------Secuencia 2 (Pares-Impares)
+  ;----------Secuencia 2 (Pares-Impares)-------------
+  Secuencia2: 
   
     MOVLW 0b00010100   ;pares
     MOVWF LATB 
@@ -115,5 +116,91 @@ Inicio:
     
     CALL RevisaBoton2
     GOTO Secuencia2 
+    
+    ;-----------Secuencia 3 (extremo-centro)--------------
+    Secuencia3: 
+    
+    MOVLW 0b00010010 
+    MOVWF LATB 
+    CALL Retardo_500ms
+    
+    MOVLW 0b00001100 
+    MOVWF LATB 
+    CALL Retardo_500ms
+    
+    MOVLW 0b00011110 
+    MOVWF LATB 
+    CALL Retardo_500ms
+    
+    CLRF LATB
+    CALL Retardo_500ms 
+    
+    CALL RevisaBoton3
+    GOTO Secuencia3
+    
+    ;------ Subrutinas para Botón-------
+    
+    RevisaBoton1:
+    BTFSS PORTB,4
+    GOTO Secuencia2 ;si está presionado, cambia a secuencia 2
+    RETURN 
+    
+    RevisaBoton2:
+    BTFSS PORTB,4 
+    GOTO Secuencia3 ;si está presionado, cambia a secuencia 3
+    RETURN 
+    
+    RevisaBoton3:
+    BTFSS PORTB,4 
+    GOTO Secuencia1 ;si está presionado, cambia a secuencia 1
+    RETURN
+    
+   ;-----------Subrutinas de retardo---------------
+   Retardo_200ms:
+    MOVLW 2 
+    MOVWF ContadorExterno 
+   Loop200a: 
+    MOVLW 133 
+    MOVWF ContadorMedio
+   Loop200b: 
+    MOVLW 150 
+    MOVWF ContadorInterno
+   Loop200c:
+    NOP 
+    NOP
+    NOP 
+    DECFSZ ContadorInterno,F
+    GOTO Loop200c
+    DECFSZ ContadorMedio,F
+    GOTO Loop200b
+    DECFSZ ContadorExterno,F
+    GOTO Loop200a 
+    RETURN 
+   
+   Retardo_500ms:
+    MOVLW 2 
+    MOVWF ContadorExterno 
+   Loop500a: 
+    MOVLW 250 
+    MOVWF ContadorMedio
+   Loop500b: 
+    MOVLW 250 
+    MOVWF ContadorInterno
+   Loop500c:
+    NOP 
+    NOP
+    DECFSZ ContadorInterno,F
+    GOTO Loop500c
+    DECFSZ ContadorMedio,F
+    GOTO Loop500b
+    DECFSZ ContadorExterno,F
+    GOTO Loop500a 
+    RETURN
+   
+  ;---------Variables-------
+  PSECT udata 
+    ContadorExterno: DS 1 
+    ContadorMedio: DS 1
+    ContadorInterno: DS 1
     
   END
