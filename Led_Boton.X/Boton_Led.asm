@@ -202,5 +202,5 @@ Inicio:
     ContadorExterno: DS 1 
     ContadorMedio: DS 1
     ContadorInterno: DS 1
-    
+    exit
   END
