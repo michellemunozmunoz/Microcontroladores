@@ -1,0 +1,85 @@
+;Profe en teoria este codigo se debió haber subido hace 1 semana atrás, pero por algún motivo o razón que desconozco se borró ese commit
+#include <xc.inc>
+CONFIG FOSC = INTOSCIO_EC
+CONFIG WDT = OFF
+CONFI LVP = OFF
+CONFIG PBADEN = OFF
+
+PSECT resetVec, class= CODE, reloc=2
+ORG 0x00
+GOTO Inicio
+
+; Código Principal
+PSECT main_code, class = CODE, reloc = 2 
+
+Inicio: 
+CLRF TRISB, A
+CLRF LATB, A
+Loop:
+BSF LATB, 0, A
+CALL Retardo_5s
+
+BCF LATB,0,A
+CALL Retardo_2s
+
+GOTO Loop 
+
+; Subrutina de Retardo de 5000ms 
+Retardo_5s:
+ MOVLW 5
+ MOVWF Contador5, A
+
+Loop5s_Externo:
+CALL Retardo_1s
+DECFSZ Contador5, F, A
+GOTO Loop5s_Externo
+RETURN
+
+; Subrutina de Retardo de 2000ms
+
+Retardo_2s:
+MOVLW 2
+MOVWF Contador2, A
+Loop2s_Externo:
+CALL Retardo_1s
+DECFSZ Contador2s, F, A
+GOTO Loop2s_Externo
+RETURN
+
+; Subrutina de Retardo de 1 segundo (base)
+Retardo_1s:
+ MOVLW 25
+ MOVWF ContadorExterno, A
+
+ LoopExterno:
+ MOVLW 250
+ MOVWF ContadorInterno, A
+
+ LoopInterno:
+ NOP
+ NOP
+ NOP
+ NOP
+ NOP
+
+ DECFSZ ContadorInterno, F, A
+ GOTO LoopInterno
+
+ DECFSZ ContadorExterno, F, A
+ GOTO LoopExterno
+
+ RETURN
+ ; Definición de Variables
+
+ PSECT udata_acs
+ ContadorExterno: DS 1
+ ContadorInterno: DS 1
+ Contador5: DS 1
+ Contador2: DS 1
+
+ END
+
+
+
+
+
