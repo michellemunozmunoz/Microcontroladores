@@ -21,10 +21,19 @@
     MOVLW 0b01110010 ; Patrón binario para oscilador de 8MHz
     MOVWF OSCCON     ; Transferir al registro de control del oscilador
     
-    CLRF TRISB       ; Definir todo PORTB como salidas
+  MOVLW 0b00000010 ; RB1 = entrada (1), RB0 = salida (0)
+    MOVWF TRISB       ; Definir todo PORTB como salidas
     CLRF LATB        ; Poner todos los pines de PORTB en estado bajo
-    GOTO LED_Activar ; Comenzar ciclo con LED activado
-    
+
+  Bucle_Principal:
+    BTFSS PORTB,1        ; ¿Está RB1 en alto? (botón presionado)
+    GOTO LED_Apagado     ; Si no está presionado ? mantener apagado
+    GOTO LED_Activar     ; Si está presionado ? iniciar parpadeo
+
+  LED_Apagado:
+    BCF LATB,0           ; Asegura LED apagado
+    GOTO Bucle_Principal ; Volver a revisar botón
+
   LED_Activar:
     BSF LATB, 0      ; Establecer pin RB0 en alto (LED encendido)
     MOVLW 5          ; Preparar valor de 5 unidades de tiempo
@@ -45,7 +54,7 @@
     CALL Pausa_1segundo ; Invocar retardo de un segundo
     DECFSZ Contador_Temporal, F ; Reducir contador, saltar si llega a cero
     GOTO Bucle_Desactivacion ; Reiterar mientras no sea cero
-    GOTO LED_Activar ; Reiniciar ciclo de activación
+    GOTO Bucle_Principal ; Revisa de nuevo el boton
     
 ; === Retardo de 1 segundo ====
   Pausa_1segundo:
@@ -62,8 +71,8 @@
     
   Bucle_Interno:
     NOP              ; Instrucción sin operación (consumir ciclo)
-    NOP              ; Instrucción sin operación (consumir ciclo)
-    NOP              ; Instrucción sin operación (consumir ciclo)
+    NOP              ; Consume otro ciclo
+    NOP              ; Consume otro ciclo
     DECFSZ Contador_Interno, F ; Decrementar contador interno
     GOTO Bucle_Interno ; Repetir bucle interno
     DECFSZ Contador_Intermedio, F ; Decrementar contador intermedio
