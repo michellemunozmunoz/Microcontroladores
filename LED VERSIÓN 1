@@ -1,11 +1,11 @@
 ;======================================
 ; Programa: Secuencia LEDs con cambio por botón
-; Micro: PIC18F4550
+; Microcontrolador: PIC18F4550
 ; Compilador : MPLAB X v6.25
 ; Función: 4 LEDs (RB0-RB3) encienden en secuencia. 
 ;          Con botón en RB4 cambia la secuencia.
 ; Frecuencia: 8 MHz (Oscilador Interno)
-; Incluye Botón
+; Incluye botón
 ;======================================
 
  ;---------------------------------------
@@ -42,111 +42,160 @@ MOVWF TRISB
 CLRF LATB
 
 Loop:  
-   GOTO SecuenciaNormal
+   GOTO Secuencia1
 
 ;------------------------------------------------
-; Secuencia Normal: RB0 --> RB1 --> RB2 --> RB3
+; Secuencia1: Encendido en zigzag cruzado
 ;------------------------------------------------
-SecuenciaNormal:
-BSF LATB, 0
-CALL Retardo_500ms
-CLRF LATB
+Secuencia1:
+MOVLW 0b00010010 ; RB1 y RB4
+MOVWF LATB
+CALL Retardo_800ms
 
-BSF LATB, 1
-CALL Retardo_500ms
-CLRF LATB
 
-BSG LATB, 2
+MOVLW 0b00001100 ; RB2 y RB3
+MOVWF LATB
 CALL Retardo_500ms
-CLRF LATB
 
-BSF LATB, 3
-CALL Retardo_500ms
+
 CLRF LATB
+CALL Retardo_300ms
+
+BTFSS PORTB, 0 
+GOTO Secuencia1
+GOTO Secuencia2
 
 GOTO Loop
 ;------------------------------------------------
-;Secuencia invertida
+;Secuencia 2: Encendido progresivo acumulado
 ;------------------------------------------------
 
-SecuenciaInvertida:
-BSF LATB 3
+Secuencia2:
+MOVLW   0b00000010
+    MOVWF   LATB
+    CALL    Retardo_300ms
 
+    MOVLW   0b00000110
+    MOVWF   LATB
+    CALL    Retardo_300ms
 
+    MOVLW   0b00001110
+    MOVWF   LATB
+    CALL    Retardo_300ms
 
-MOVLW 5
-MOVWF Ciclos
-DelayOn:
-  CALL Retardo_1s
-DECF 
-SZ Ciclos, F
-GOTO DelayOn
-GOTO Apagado
+    MOVLW   0b00011110
+    MOVWF   LATB
+    CALL    Retardo_300ms
 
-;Apagar LEDs 2 segundos
-CLRF LATB
-MOVLW 2
-MOVWF Ciclos
+    CLRF    LATB
+    CALL    Retardo_800ms
 
-Apagado:
-CLRF LATB
-MOVLW 2
-MOVWF Ciclos
-
-DelayOff:
-CALL Retardo_1s 
-DECFSZ Ciclos, F
-GOTO DelayOff
-GOTO Loop
-
-LedOFF:
-CLRF LATB
-GOTO Loop
+    BTFSS   PORTB,0
+    GOTO    Secuencia2
+    GOTO    Secuencia3
 
 ;-----------------------------------------------
-; Subrutina: Retardo de menos de 1 segundo
+; Secuencia 3: Encendido tipo rebote rápid
 ;-----------------------------------------------
+Secuencia3:
+    MOVLW   0b00000010
+    MOVWF   LATB
+    CALL    Retardo_200ms
 
-Retardo_1s : 
-MOVLW 8
-MOVWF ContadorExterno
+    MOVLW   0b00000100
+    MOVWF   LATB
+    CALL    Retardo_200ms
 
-LoopExterno:
-MOVLW 200
-MOVWF ContadorMedio
+    MOVLW   0b00001000
+    MOVWF   LATB
+    CALL    Retardo_200ms
 
-LoopMedio:
-MOVLW 250
-MOVWF LoopInterno
+    MOVLW   0b00010000
+    MOVWF   LATB
+    CALL    Retardo_200ms
 
-LoopInterno:
-NOP
-NOP
-NOP
+    MOVLW   0b00001000
+    MOVWF   LATB
+    CALL    Retardo_200ms
 
-DECFSZ ContadorInterno , F
-GOTO LoopInterno
+    MOVLW   0b00000100
+    MOVWF   LATB
+    CALL    Retardo_200ms
 
-DECFSZ ContadorMedio, F
-GOTO LoopMedio 
+    CLRF    LATB
+    CALL    Retardo_800ms
 
-DECFSZ ContadorExterno, F
-GOTO LoopExterno
-
-RETURN  ; Recordar, subrutina SIEMPRE termina en RETURN
-
+    BTFSS   PORTB,0
+    GOTO    Secuencia3
+    GOTO    Secuencia1
 ;----------------------------------------------------
-; Variables
+; Subrutina de retardo
 ;----------------------------------------------------
 
-PSECT udata
-ContadorExterno: DS 1
-ContadorInterno : DS 1
-ContadorMedio: DS 1
-Ciclos: DS 1
+Retardo_800ms:
+    MOVLW 6
+    MOVWF CntExt
+Loop1:
+    MOVLW 200
+    MOVWF CntMed
+Loop2:
+    MOVLW 250
+    MOVWF CntInt
+Loop3:
+    NOP
+    DECFSZ CntInt,F
+    GOTO Loop3
+    DECFSZ CntMed,F
+    GOTO Loop2
+    DECFSZ CntExt,F
+    GOTO Loop1
+    RETURN
 
-END
-     
+Retardo_300ms:
+    MOVLW 2
+    MOVWF CntExt
+Loop4:
+    MOVLW 200
+    MOVWF CntMed
+Loop5:
+    MOVLW 250
+    MOVWF CntInt
+Loop6:
+    NOP
+    DECFSZ CntInt,F
+    GOTO Loop6
+    DECFSZ CntMed,F
+    GOTO Loop5
+    DECFSZ CntExt,F
+    GOTO Loop4
+    RETURN
+
+Retardo_200ms:
+    MOVLW 1
+    MOVWF CntExt
+Loop7:
+    MOVLW 160
+    MOVWF CntMed
+Loop8:
+    MOVLW 250
+    MOVWF CntInt
+Loop9:
+    NOP
+    DECFSZ CntInt,F
+    GOTO Loop9
+    DECFSZ CntMed,F
+    GOTO Loop8
+    DECFSZ CntExt,F
+    GOTO Loop7
+    RETURN
+
+;--- Variables en RAM ---
+    PSECT udata
+CntExt: DS 1
+CntMed: DS 1
+CntInt: DS 1
+
+    END
 
 
 
