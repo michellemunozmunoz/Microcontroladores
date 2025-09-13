@@ -1,0 +1,95 @@
+;=========================================================
+; Proyecto: Alarmas LED
+; PIC18F452 - Ensamblador (MPLAB con XC8-ASM)
+; Oscilador interno 8 MHz
+; LED en RB0 -> Encendido 5000 ms, Apagado 2000 ms
+;=========================================================
+
+    #include <xc.inc>
+
+;--------------------------------------
+; Configuración de bits
+;--------------------------------------
+    config  FOSC = INTOSC_EC   ; Oscilador interno
+    config  WDT = OFF          ; Watchdog OFF
+    config  LVP = OFF          ; Low Voltage Programming OFF
+    config  PBADEN = OFF       ; PORTB digital al reset
+
+;--------------------------------------
+; Vectores de inicio
+;--------------------------------------
+    PSECT  resetVec, class=CODE, reloc=2
+    ORG     0x00
+    GOTO    Inicio
+
+;--------------------------------------
+; Código principal
+;--------------------------------------
+    PSECT  main_code, class=CODE, reloc=2
+
+Inicio:
+    CLRF    TRISB       ; PORTB como salida
+    CLRF    LATB        ; Apagar LEDs al inicio
+
+    ; Configurar OSCCON para 8 MHz interno
+    MOVLW   b'01110010' ; IRCF=111 -> 8 MHz, SCS=10 -> usar interno
+    MOVWF   OSCCON
+
+    ; Esperar a que el oscilador interno esté estable (opcional)
+Espera_OSC:
+    BTFSS   OSCCON, IOFS
+    GOTO    Espera_OSC
+
+Loop:
+    ; Encender LED 5 segundos
+    BSF     LATB, 0
+    MOVLW   5
+    MOVWF   Veces
+Encendido:
+    CALL    Retardo_1s
+    DECFSZ  Veces, F
+    GOTO    Encendido
+
+    ; Apagar LED 2 segundos
+    BCF     LATB, 0
+    MOVLW   2
+    MOVWF   Veces
+Apagado:
+    CALL    Retardo_1s
+    DECFSZ  Veces, F
+    GOTO    Apagado
+
+    GOTO    Loop
+
+;--------------------------------------
+; Retardo aproximado de 1 segundo (a 8 MHz)
+;--------------------------------------
+Retardo_1s:
+    MOVLW   25
+    MOVWF   ContadorExterno
+
+LoopExterno:
+    MOVLW   250
+    MOVWF   ContadorInterno
+
+LoopInterno:
+    NOP
+    NOP
+    NOP
+    DECFSZ  ContadorInterno, F
+    GOTO    LoopInterno
+
+    DECFSZ  ContadorExterno, F
+    GOTO    LoopExterno
+
+    RETURN
+
+;--------------------------------------
+; Variables en RAM
+;--------------------------------------
+    PSECT udata
+ContadorExterno: DS 1
+ContadorInterno: DS 1
+Veces:           DS 1
+
+    END
