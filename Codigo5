@@ -1,0 +1,87 @@
+;=========================================================
+; Programa: Alarma LED (PIC18F4550)
+; Lenguaje: Ensamblador (MPLAB XC8 Assembler)
+; Función: Enciende LED en RB0 por 5000 ms y lo apaga por 2000 ms
+; Frecuencia: 8 MHz (Oscilador Interno)
+;=========================================================
+
+    #include <xc.inc>
+
+    ;--------------------------------------------
+    ; Configuración de Bits
+    ;--------------------------------------------
+    CONFIG  FOSC = INTOSCIO_EC   ; Oscilador interno 8 MHz
+    CONFIG  WDT = OFF            ; Watchdog deshabilitado
+    CONFIG  LVP = OFF            ; Programación bajo voltaje off
+    CONFIG  PBADEN = OFF         ; PORTB como digital
+
+    ;--------------------------------------------
+    ; Vector de Reset
+    ;--------------------------------------------
+    PSECT  resetVec, class=CODE, reloc=2
+    ORG     0x00
+    GOTO    Inicio
+
+    ;--------------------------------------------
+    ; Programa Principal
+    ;--------------------------------------------
+    PSECT main_code, class=CODE, reloc=2
+
+Inicio:
+    CLRF    TRISB       ; PORTB como salida
+    CLRF    LATB        ; LED apagado al inicio
+
+Loop:
+    ; Encender LED 5 segundos
+    BSF     LATB, 0     ; LED ON
+    MOVLW   5
+    MOVWF   Ciclos
+DelayOn:
+    CALL    Retardo_1s
+    DECFSZ  Ciclos, F
+    GOTO    DelayOn
+
+    ; Apagar LED 2 segundos
+    BCF     LATB, 0     ; LED OFF
+    MOVLW   2
+    MOVWF   Ciclos
+DelayOff:
+    CALL    Retardo_1s
+    DECFSZ  Ciclos, F
+    GOTO    DelayOff
+
+    GOTO    Loop        ; Repetir indefinidamente
+
+;--------------------------------------------
+; Subrutina: Retardo de ~1 segundo
+;--------------------------------------------
+Retardo_1s:
+    MOVLW   25
+    MOVWF   ContadorExterno
+
+LoopExterno:
+    MOVLW   250
+    MOVWF   ContadorInterno
+
+LoopInterno:
+    NOP
+    NOP
+    NOP
+
+    DECFSZ  ContadorInterno, F
+    GOTO    LoopInterno
+
+    DECFSZ  ContadorExterno, F
+    GOTO    LoopExterno
+
+    RETURN
+
+;--------------------------------------------
+; Variables
+;--------------------------------------------
+    PSECT udata
+ContadorExterno:   DS 1
+ContadorInterno:   DS 1
+Ciclos:            DS 1
+
+    END
