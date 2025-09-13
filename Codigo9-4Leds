@@ -1,0 +1,125 @@
+;=========================================================
+; Programa: Alarma LED (PIC18F4550)
+; Lenguaje: Ensamblador (MPLAB XC8 Assembler)
+; Función: Enciende LED en RB0 por 5000 ms y lo apaga por 2000 ms
+; Frecuencia: 8 MHz (Oscilador Interno)
+;=========================================================
+
+
+    ;--------------------------------------------
+    ; Configuración de Bits
+    ;--------------------------------------------
+    CONFIG  FOSC = INTOSC_EC   ; Oscilador interno 8 MHz
+    CONFIG  WDT = OFF            ; Watchdog deshabilitado
+    CONFIG  LVP = OFF            ; Programación bajo voltaje off
+    CONFIG  PBADEN = OFF         ; PORTB como digital
+	
+    
+    #include <xc.inc>
+
+    ;--------------------------------------------
+    ; Vector de Reset
+    ;--------------------------------------------
+    PSECT  resetVec, class=CODE, reloc=2
+    ORG     0x00
+    GOTO    Inicio ;Aquí uso GOTO (salto al inicio del programa)
+
+    ;--------------------------------------------
+    ; Programa Principal
+    ;--------------------------------------------
+    PSECT main_code, class=CODE, reloc=2
+
+Inicio:	    ;Sección principal, se entra con GOTO, NO con CALL
+    
+    ; Configurar OSCCON para 8 MHz, usando INTOSC
+    MOVLW   0b01110010   ; IRCF=111 (8 MHz), SCS=10 (INTOSC)
+    MOVWF   OSCCON
+
+    MOVLW   0b00010000   ;RB1= 1 (entrada), RB0= 0 (salida)
+    MOVWF   TRISB
+    CLRF    LATB          ; LED apagado al inicio
+    GOTO    Loop
+    
+Loop:	    ;Bucle principal, se repite con GOTO
+            ; Encender LED 5 segundos
+	    ; Leer botón en RB4
+    BTFSC   PORTB, 4	; Si RB4=1 (no presionado) salta
+    GOTO    LedOFF
+    
+    ; Si esta presionado encender LED 5 segundos
+    BSF     LATB, 0       ; LED1 ON  (RBO)
+    BCF     LATB, 1       ; LED2 OFF (RB1)
+    BSF	    LATB, 2       ; LED3 ON  (RB2)
+    BCF	    LATB, 3       ; LED4 OFF (RB3)
+    
+    MOVLW   5
+    MOVWF   Ciclos
+    
+DelayOn:        
+    CALL    Retardo_1s	    ;Llamada a subrutina (CALL)
+    
+    DECF
+    SZ  Ciclos, F
+    GOTO    DelayOn
+    GOTO    Apagado
+    
+    ; Apagar LEDs 2 segundos
+    CLRF     LATB       ; LED OFF
+    MOVLW   2
+    MOVWF   Ciclos
+    
+    Apagado:
+    CLRF LATB
+    MOVLW 2 
+    MOVWF Ciclos
+    
+DelayOff:
+    CALL    Retardo_1s	    ;Otra subrutina llamada con CALL
+    DECFSZ  Ciclos, F
+    GOTO    DelayOff
+    GOTO    Loop          ; Repetir indefinidamente, Y Vuelve al bucle principal
+    
+LedOFF:
+    CLRF LATB
+    GOTO Loop
+;--------------------------------------------
+; Subrutina: Retardo de ~1 segundo
+;--------------------------------------------
+Retardo_1s:		  ;Subrutina siempre se llama con CALL
+    MOVLW   8
+    MOVWF   ContadorExterno
+
+LoopExterno:
+    MOVLW   200
+    MOVWF   ContadorMedio
+    
+LoopMedio:
+    MOVLW 250
+    MOVWF LoopInterno
+
+LoopInterno:
+    NOP
+    NOP
+    NOP
+
+    DECFSZ  ContadorInterno, F
+    GOTO    LoopInterno
+    
+    DECFSZ ContadorMedio, F
+    GOTO LoopMedio
+    
+    DECFSZ  ContadorExterno, F
+    GOTO    LoopExterno
+
+    RETURN		  ;Importante: subrutina siempre termina en RETURN
+
+;--------------------------------------------
+; Variables
+;--------------------------------------------
+    PSECT udata
+ContadorExterno:   DS 1
+ContadorInterno:   DS 1
+ContadorMedio:     DS 1
+Ciclos:            DS 1
+
+    END
