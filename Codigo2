@@ -1,0 +1,71 @@
+;=========================================================
+; Código en Assembler para PIC18F4552
+; Parpadeo de LED en RB0 cada 1 segundo
+; Usa retardos sin interrupciones ni Timer0
+; Frecuencia: 8 MHz (Oscilador Interno)
+; Ensamblador: MPLAB XC8 (modo ASM)
+;=========================================================
+
+    #include <xc.inc>   ; Incluir definiciones del ensamblador para PIC18F4552
+
+    ;-----------------------------------------------------
+    ; Configuración de bits (fuses)
+    ;-----------------------------------------------------
+    CONFIG  FOSC = INTOSCIO_EC   ; Oscilador interno 8 MHz
+    CONFIG  WDT = OFF            ; Deshabilitar Watchdog Timer
+    CONFIG  LVP = OFF            ; Deshabilitar programación en bajo voltaje
+    CONFIG  PBADEN = OFF         ; PORTB digital en reset
+
+    ;-----------------------------------------------------
+    ; Vector de reset
+    ;-----------------------------------------------------
+    PSECT  resetVec, class=CODE, reloc=2
+    ORG     0x00
+    GOTO    Inicio
+
+    ;-----------------------------------------------------
+    ; Código principal
+    ;-----------------------------------------------------
+    PSECT  main_code, class=CODE, reloc=2
+
+Inicio:
+    CLRF    TRISB       ; PORTB como salida
+    CLRF    LATB        ; Inicialmente LED apagado
+
+Loop:
+    BTG     LATB, 0     ; Alternar LED en RB0
+    CALL    Retardo_1s  ; Llamar retardo de 1 segundo
+    GOTO    Loop        ; Repetir
+
+    ;-----------------------------------------------------
+    ; Retardo aproximado de 1 segundo
+    ;-----------------------------------------------------
+Retardo_1s:
+    MOVLW   25
+    MOVWF   ContadorExterno
+
+LoopExterno:
+    MOVLW   250
+    MOVWF   ContadorInterno
+
+LoopInterno:
+    NOP
+    NOP
+    NOP
+
+    DECFSZ  ContadorInterno, F
+    GOTO    LoopInterno
+
+    DECFSZ  ContadorExterno, F
+    GOTO    LoopExterno
+
+    RETURN
+
+    ;-----------------------------------------------------
+    ; Variables en RAM
+    ;-----------------------------------------------------
+    PSECT udata
+ContadorExterno:   DS 1
+ContadorInterno:   DS 1
+
+    END
