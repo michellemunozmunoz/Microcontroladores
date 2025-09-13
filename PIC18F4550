@@ -1,0 +1,90 @@
+;=========================================================
+; Código en Assembler para PIC18F4550
+; Parpadeo de LED en RB0 -> 5s encendido / 2s apagado
+; Frecuencia: 8 MHz (Oscilador Interno)
+; Ensamblador: MPLAB XC8
+;=========================================================
+
+    #include <xc.inc>   ; Definiciones del ensamblador para PIC18F4550
+
+    ;------------------------------------------------------
+    ; Configuración de bits
+    ;------------------------------------------------------
+    CONFIG  FOSC = INTOSCIO_EC   ; Oscilador interno 8 MHz
+    CONFIG  WDT = OFF
+    CONFIG  LVP = OFF
+    CONFIG  PBADEN = OFF
+
+    ;------------------------------------------------------
+    ; Vector de Reset
+    ;------------------------------------------------------
+    PSECT  resetVec, class=CODE, reloc=2
+    ORG     0x00
+    GOTO    Inicio
+
+    ;------------------------------------------------------
+    ; Programa principal
+    ;------------------------------------------------------
+    PSECT  main_code, class=CODE, reloc=2
+
+Inicio:
+    CLRF    TRISB       ; Configurar PORTB como salida
+    CLRF    LATB        ; Inicialmente todo apagado
+
+Loop:
+    ; --- Encender LED (RB0 = 1) ---
+    BSF     LATB, 0
+    
+    ; Retardo de 5 segundos (5x retardo de 1s)
+    MOVLW   5
+    MOVWF   SecCounter
+DelayOn:
+    CALL    Retardo_1s
+    DECFSZ  SecCounter, F
+    GOTO    DelayOn
+
+    ; --- Apagar LED (RB0 = 0) ---
+    BCF     LATB, 0
+    
+    ; Retardo de 2 segundos (2x retardo de 1s)
+    MOVLW   2
+    MOVWF   SecCounter
+DelayOff:
+    CALL    Retardo_1s
+    DECFSZ  SecCounter, F
+    GOTO    DelayOff
+
+    GOTO    Loop          ; Repetir ciclo infinito
+
+    ;------------------------------------------------------
+    ; Subrutina: Retardo aproximado de 1 segundo @ 8 MHz
+    ;------------------------------------------------------
+Retardo_1s:
+    MOVLW   25
+    MOVWF   ContadorExterno
+
+LoopExterno:
+    MOVLW   250
+    MOVWF   ContadorInterno
+
+LoopInterno:
+    NOP
+    NOP
+    NOP
+    DECFSZ  ContadorInterno, F
+    GOTO    LoopInterno
+
+    DECFSZ  ContadorExterno, F
+    GOTO    LoopExterno
+
+    RETURN
+
+    ;------------------------------------------------------
+    ; Variables
+    ;------------------------------------------------------
+    PSECT udata
+ContadorExterno: DS 1
+ContadorInterno: DS 1
+SecCounter:      DS 1
+
+    END
