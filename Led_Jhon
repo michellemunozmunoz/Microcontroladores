@@ -28,7 +28,10 @@
   Bucle_Principal:
     BTFSS PORTB,4        ; ¿Está RB4 en alto? (botón presionado)
     GOTO LED_Apagado     ; Si no está presionado ? mantener apagado
-    GOTO Secuencia1    ; Si está presionado ? iniciar secuencia1
+    CALL Secuencia1
+    CALL Secuencia2
+    CALL Secuencia3
+    GOTO Bucle_Principal
 
   LED_Apagado:
     CLRF LATB,         ; Pone en cero el registro, (apaga todos los leds)
@@ -41,7 +44,61 @@
     CALL Pausa_1segundo    ; llama a la subrutina de 1 segundo
     CLRF LATB           ; Apaga todos los LEDs
     CALL Pausa_1segundo   ; los mantiene apagados por 1 segundo
-    GOTO Bucle_Principal ; cada que termina el ciclo encendido/apago vuelve y revisa el botón 
+    RETURN 
+
+;-------Secuencia 2, encedios de derecha a izquierda 
+  Secuencia 2:
+    MOVLW 0x01        ; 0001 → Enciende RB0
+    MOVWF LATB 
+    CALL Pausa_1segundo
+    
+    MOVLW 0x02        ; 0010 → Enciende RB1
+    MOVWF LATB 
+    CALL Pausa_1segundo
+
+    MOVLW 0x04        ; 0100 → Enciende RB2
+    MOVWF LATB 
+    CALL Pausa_1segundo
+
+    MOVLW 0x08        ; 1000 → Enciende RB3
+    MOVWF LATB 
+    CALL Pausa_1segundo
+
+    RETURN
+
+;--------Secuencia 3, efecto pingpog
+Secuencia3:
+    ; De izquierda a derecha
+    MOVLW 0x01    ;LED en RB0 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo  ; pausa de 1 segundo 
+
+    MOVLW 0x02     ;LED en RB1 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo   ; pausa de un segundo
+
+    MOVLW 0x04    ;LED en RB2 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo  pausa de 1 segundo 
+
+    MOVLW 0x08    ;LED en RB3 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo  ;pausa de 1 segundo
+
+    ; Ahora de derecha a izquierda
+    MOVLW 0x04      ;LED en RB2 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo   ;pausa de 1 segundo
+
+    MOVLW 0x02       ;LED en RB1 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo   ;pausa de 1 segundo
+
+    MOVLW 0x01      ;LED en RB0 encendido
+    MOVWF LATB
+    CALL Pausa_1segundo    ;pausa de 1 segundo
+
+    RETURN
     
 ; ---- Retardo de 1 segundo 
   Pausa_1segundo:
