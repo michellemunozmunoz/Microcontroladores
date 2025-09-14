@@ -21,42 +21,29 @@
     MOVLW 0b01110010 ; Patrón binario para oscilador de 8MHz
     MOVWF OSCCON     ; Transferir al registro de control del oscilador
     
-  MOVLW 0b00000010 ; RB1 = entrada (1), RB0 = salida (0)
+  MOVLW 0b00010000 ; RB4 = entrada del boton, RB0/RB3/RB2 = salidas
     MOVWF TRISB       ; Definir todo PORTB como salidas
     CLRF LATB        ; Poner todos los pines de PORTB en estado bajo
 
   Bucle_Principal:
-    BTFSS PORTB,1        ; ¿Está RB1 en alto? (botón presionado)
+    BTFSS PORTB,4        ; ¿Está RB4 en alto? (botón presionado)
     GOTO LED_Apagado     ; Si no está presionado ? mantener apagado
-    GOTO LED_Activar     ; Si está presionado ? iniciar parpadeo
+    GOTO Secuencia1    ; Si está presionado ? iniciar secuencia1
 
   LED_Apagado:
-    BCF LATB,0           ; Asegura LED apagado
+    CLRF LATB,         ; Pone en cero el registro, (apaga todos los leds)
     GOTO Bucle_Principal ; Volver a revisar botón
 
-  LED_Activar:
-    BSF LATB, 0      ; Establecer pin RB0 en alto (LED encendido)
-    MOVLW 5          ; Preparar valor de 5 unidades de tiempo
-    MOVWF Contador_Temporal ; Almecenar duración de activación
+;-----Secuencia 1, parpadeo de todos los leds
+  Secuencia1:
+    MOVLW 0x0F        ; 00001111 → Enciende RB0, RB1, RB2, RB3
+    MOVWF LATB        ;enciende simultáneamente los 4 LEDs
+    CALL Pausa_1segundo    ; llama a la subrutina de 1 segundo
+    CLRF LATB           ; Apaga todos los LEDs
+    CALL Pausa_1segundo   ; los mantiene apagados por 1 segundo
+    GOTO Bucle_Principal ; cada que termina el ciclo encendido/apago vuelve y revisa el botón 
     
- Bucle_Activacion:
-    CALL Pausa_1segundo ; Invocar retardo de un segundo
-    DECFSZ Contador_Temporal, F ; Reducir contador, saltar si llega a cero
-    GOTO Bucle_Activacion ; Reiterar mientras no sea cero
-    GOTO LED_Desactivar ; Proceder a desactivar LED
-    
- LED_Desactivar:
-    BCF LATB, 0      ; Poner pin RB0 en bajo (LED apagado)
-    MOVLW 2          ; Preparar valor de 2 unidades de tiempo
-    MOVWF Contador_Temporal ; Almecenar duración de desactivación
-    
- Bucle_Desactivacion:
-    CALL Pausa_1segundo ; Invocar retardo de un segundo
-    DECFSZ Contador_Temporal, F ; Reducir contador, saltar si llega a cero
-    GOTO Bucle_Desactivacion ; Reiterar mientras no sea cero
-    GOTO Bucle_Principal ; Revisa de nuevo el boton
-    
-; === Retardo de 1 segundo ====
+; ---- Retardo de 1 segundo 
   Pausa_1segundo:
     MOVLW 8          ; Valor para contador de bucle exterior
     MOVWF Contador_Externo ; Guardar en variable de bucle externo
