@@ -1,16 +1,17 @@
 ; Ajustes de configuración del PIC18F4550
+;proyecto de secuencias microcontroladores 
 
   CONFIG  FOSC = INTOSC_EC      ; Emplear oscilador interno de 8MHz
   CONFIG  WDT = OFF             ; Inhibir el temporizador de vigilancia 
   CONFIG  PBADEN = OFF          ; Establecer pines de PORTB como digitales
   CONFIG  LVP = OFF             ; Deshabilitar programación por bajo voltaje
 
-  
 ; Incorporar definiciones específicas del PIC18F4550
 #include <xc.inc> 
-  
+
+GLOBAL Configuracion_Inicial
+ 
   PSECT vector_reset, class=CODE, reloc=2 ; Punto de entrada tras reset
-  
   ORG 0x00 ; Dirección inicial tras reset
   GOTO Configuracion_Inicial ; Saltar a rutina de inicialización
   
@@ -21,86 +22,78 @@
     MOVLW 0b01110010 ; Patrón binario para oscilador de 8MHz
     MOVWF OSCCON     ; Transferir al registro de control del oscilador
     
-  MOVLW 0b00010000 ; RB4 = entrada del boton, RB0/RB3/RB2 = salidas
+    MOVLW 0b00010000 ; RB4 = entrada del boton, RB0/RB3/RB2 = salidas
     MOVWF TRISB       ; Definir todo PORTB como salidas
     CLRF LATB        ; Poner todos los pines de PORTB en estado bajo
 
-  Bucle_Principal:
-    BTFSS PORTB,4        ; ¿Está RB4 en alto? (botón presionado)
-    GOTO LED_Apagado     ; Si no está presionado ? mantener apagado
-    CALL Secuencia1
-    CALL Secuencia2
-    CALL Secuencia3
-    GOTO Bucle_Principal
+ Bucle_Principal:
+    BTFSS PORTB,4       ; ¿Está RB4 en alto? (botón presionado)
+    GOTO EjecutarSecuencia ; Si no, ir a ejecutar secuencia
+    
+    ; Si botón presionado, cambiar de secuencia
+    INCF Secuencia, F      ; Secuencia++
+    MOVF Secuencia, W
+    SUBLW  4   
+    BTFSC STATUS,Z
+    CLRF Secuencia         ; Si llega a 4, reinicia en 0
+    INCF Secuencia, F      ; Reinicia en 1
+    
+    EjecutarSecuencia:
+    MOVF Secuencia, W
+    SUBLW 1
+    BTFSC STATUS,Z
+    CALL Secuencia1           ; Si Secuencia=1, pasa a Secuencia1
 
-  LED_Apagado:
-    CLRF LATB,         ; Pone en cero el registro, (apaga todos los leds)
-    GOTO Bucle_Principal ; Volver a revisar botón
+    MOVF Secuencia, W
+    SUBLW 2
+    BTFSC STATUS,Z
+    CALL Secuencia2          ; Si Secuencia=2, pasa a Secuencia2
 
-;-----Secuencia 1, parpadeo de todos los leds
+    MOVF Secuencia, W
+    SUBLW 3
+    BTFSC STATUS,Z
+    CALL Secuencia3           ; Si Secuencia=3, pasa a Secuencia3
+
+    GOTO Bucle_Principal       ; repite el ciclo principal
+
+;RUTINAS DE SECUENCIA
+
+;Secuencia 1, parpadeo de todos los leds
   Secuencia1:
     MOVLW 0x0F        ; 00001111 → Enciende RB0, RB1, RB2, RB3
     MOVWF LATB        ;enciende simultáneamente los 4 LEDs
     CALL Pausa_1segundo    ; llama a la subrutina de 1 segundo
     CLRF LATB           ; Apaga todos los LEDs
     CALL Pausa_1segundo   ; los mantiene apagados por 1 segundo
-    RETURN 
+    RETURN      ; Vuelva a una instruccion despues del llamado de la secuencia1 en el bucle principal
 
-;-------Secuencia 2, encedios de derecha a izquierda 
-  Secuencia 2:
-    MOVLW 0x01        ; 0001 → Enciende RB0
+;Secuencia 2, Alteracion de leds segun pares eh impares 
+  Secuencia2: 
+    MOVLW 0b00000101 ; Enciende RB0 y RB2
     MOVWF LATB 
     CALL Pausa_1segundo
-    
-    MOVLW 0x02        ; 0010 → Enciende RB1
+    MOVLW 0b00001010 ; Enciende RB1 y RB3
     MOVWF LATB 
     CALL Pausa_1segundo
+    RETURN          ;   Vuelva a una instruccion despues del llamado de la secuencia2 en el bucle principal 
 
-    MOVLW 0x04        ; 0100 → Enciende RB2
-    MOVWF LATB 
-    CALL Pausa_1segundo
-
-    MOVLW 0x08        ; 1000 → Enciende RB3
-    MOVWF LATB 
-    CALL Pausa_1segundo
-
-    RETURN
-
-;--------Secuencia 3, efecto pingpog
+;Secuencia 3, Carrera de leds uno a uno
 Secuencia3:
-    ; De izquierda a derecha
-    MOVLW 0x01    ;LED en RB0 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo  ; pausa de 1 segundo 
-
-    MOVLW 0x02     ;LED en RB1 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo   ; pausa de un segundo
-
-    MOVLW 0x04    ;LED en RB2 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo  pausa de 1 segundo 
-
-    MOVLW 0x08    ;LED en RB3 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo  ;pausa de 1 segundo
-
-    ; Ahora de derecha a izquierda
-    MOVLW 0x04      ;LED en RB2 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo   ;pausa de 1 segundo
-
-    MOVLW 0x02       ;LED en RB1 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo   ;pausa de 1 segundo
-
-    MOVLW 0x01      ;LED en RB0 encendido
-    MOVWF LATB
-    CALL Pausa_1segundo    ;pausa de 1 segundo
-
-    RETURN
+    MOVLW 0b00000001 ; enciende LED en RB0
+    MOVWF LATB 
+    CALL Pausa_1segundo
+    MOVLW 0b00000010 ; enciende LED en RB1
+    MOVWF LATB 
+    CALL Pausa_1segundo
+    MOVLW 0b00000100 ; enciende LED en RB2
+    MOVWF LATB 
+    CALL Pausa_1segundo
+    MOVLW 0b00001000 ; enciende LED en RB3
+    MOVWF LATB 
+    CALL Pausa_1segundo
+    RETURN               ; Vuelva a una instruccion despues del llamado de la secuencia3 en el bucle principal
     
-; ---- Retardo de 1 segundo 
+; Retardo de 1 segundo 
   Pausa_1segundo:
     MOVLW 8          ; Valor para contador de bucle exterior
     MOVWF Contador_Externo ; Guardar en variable de bucle externo
@@ -127,6 +120,7 @@ Secuencia3:
     RETURN           ; Regresar de subrutina cuando llegan a cero
     
     PSECT datos_uso
+    Secuencia:          DS 1   ; Guarda el número de la secuencia actual
     Contador_Externo:   DS 1 ; Reservar espacio (byte) para contador externo
     Contador_Intermedio: DS 1 ; Reservar espacio (byte) para contador intermedio
     Contador_Interno:    DS 1 ; Reservar espacio (byte) para contador interno
