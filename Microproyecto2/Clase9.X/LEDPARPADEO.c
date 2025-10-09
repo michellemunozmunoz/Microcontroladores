@@ -16,6 +16,7 @@
 #pragma config PBADEN = OFF         // PORTB como digital al reset
 
 
+
 #define _XTAL_FREQ 8000000        // Frecuencia de 8 MHz 
 
 void ADC_Init(void){
