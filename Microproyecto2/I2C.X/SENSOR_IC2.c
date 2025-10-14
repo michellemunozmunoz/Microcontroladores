@@ -152,6 +152,52 @@ void LCD_WriteString(const char*str){
     while(*str)LCD_WriteChar(*str++);
 }
 
+//SENSOR DE PROXIMIDAD GENÉRICO 
+#define PROX_ADDR 0x52   //Dirección ejemplo 
+uint8_t Proximity_ReadValue(void){
+    uint8_t value = 0; 
+    I2C_Start();
+    I2C_Write(PROX_ADDR);
+    I2C_Write(0x00);     //Registro de lectura 
+    I2C_Start(); 
+    I2C_Write(PROX_ADDR | 1);
+    value = I2C_Read(1);
+    I2C_Stop();
+    return value;
+}
+
+// MAIN
+
+void main(void){    //Configuración general
+    OSCCON = 0b01110000;     //Oscilador interno a 8MHz
+    ADCON1 = 0x0F;    //Pines digitales 
+    CMCON = 0x0F;     //Desactiva comparadores 
+    
+    TRISA = 0x00; 
+    TRISB = 0X00;
+    LATA = 0x00;
+    LATB = 0x00; 
+    
+    LCD_Init(); 
+    I2C_Init();
+    
+    LCD_SetCursor(1,1);
+    LCD_WriteString("Sensor Proximidad");
+    
+    while (1){
+        uint8_t valor = Proximity_ReadValue();
+        char buffer[16];
+        sprintf(buffer, "Dist:%3u", valor);
+                
+        LCD_SetCursor(2,1);
+        LCD_WriteString("                ");
+        LCD_SetCursor(2,1);
+        LCD_WriteString(buffer);
+        
+        __delay_ms(500);
+        
+    }   
+}
 
 
 
