@@ -1,0 +1,90 @@
+//Código de interrupciones y 4 leds (funcional)
+#include <xc.h>
+#include <pic18f4550.h>
+#pragma config FOSC = INTOSCIO_EC
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = OFF
+
+#define _XTAL_FREQ 8000000UL 
+
+//-------------------------Variables globales-----------------------------------//
+volatile unsigned char secuencia = 0; // número de secuencia (072)
+volatile unsigned char velocidad = 0; // nivel de velocidad (073)
+volatile unsigned int delay_ms_actual = 400; // retardo actual
+unsigned char paso = 0;               //paso dentro de la secuencia
+
+//--Tabla de patrones: cada secuencia tiene varios pasos--//
+const unsigned char patrones [3] [8] = {
+    //Secuencia 0: LED que corre ida y vuelta
+    {0b0001, 0b0010, 0b0100, 0b1000, 0b0100, 0b0010, 0b0001, 0b0000},
+
+    //Secuencia 1: efectos binarios (contadores)
+    {0b0000, 0b0001, 0b0011, 0b0111, 0b1111, 0b1110, 0b1100, 0b1000},
+
+    // Secuencia 2: luces alternadas
+    {0b0101, 0b1010, 0b1111, 0b0000, 0b0110, 0b1001, 0b1111, 0b0000}
+};
+// ---------------- Función de retardo ----------------
+void delay_ms_variable(unsigned int tiempo) {
+    while (tiempo--) __delay_ms(1);
+}
+
+// ---------------- Interrupciones ----------------
+void __interrupt() ISR(void) {
+    // Botón RB0 cambiar secuencia
+    if (INTCONbits.INT0IF) {
+        secuencia++;
+        if (secuencia > 2) secuencia = 0;  // vuelve a 0
+        paso = 0;                          // reinicia el paso
+        INTCONbits.INT0IF = 0;             // limpiar bandera
+    }
+
+//Botón RB1 cambiar velocidad 
+if (INTCON3bits.INTIF) {
+   velocidad++;
+   if (velocidad > 3) velocidad = 0;
+        // Cambiar el retardo según velocidad
+        switch (velocidad) {
+            case 0: delay_ms_actual = 600; break;
+            case 1: delay_ms_actual = 400; break;
+            case 2: delay_ms_actual = 200; break;
+            case 3: delay_ms_actual = 100; break;
+        }
+
+        INTCON3bits.INT1IF = 0;
+    }
+}
+
+// ---------------- PROGRAMA PRINCIPAL ----------------
+void main(void) {
+    // Configurar oscilador interno a 8 MHz
+    OSCCONbits.IRCF = 0b111;
+    OSCCONbits.SCS = 0b10;
+
+    ADCON1 = 0x0F; //pines digitales
+    TRISD = 0xF0; // RDO?RD3 Salidas
+    LATD = 0x00;
+ TRISBbits.TRISB0 = 1; // RB0 entrada (cambiar secuencia)
+    TRISBbits.TRISB1 = 1; // RB1 entrada (cambiar velocidad)
+    INTCON2bits.RBPU = 1; // sin pull-ups
+
+    // Configuración de interrupciones externas
+    INTCON2bits.INTEDG0 = 0; // flanco de bajada RB0
+    INTCONbits.INT0IF = 0;
+    INTCONbits.INT0IE = 1;
+
+    INTCON2bits.INTEDG1 = 0; // flanco de bajada RB1
+    INTCON3bits.INT1IF = 0;
+    INTCON3bits.INT1IE = 1;
+
+    INTCONbits.GIE = 1; // interrupciones globales
+
+while (1) {
+     LATD = patrones [secuencia] [paso]; // mostrar paso actual
+     paso++;                             // avanzar
+     if (paso > 7) paso = 0;             // volver al inicio
+     delay_ms_variable(delay_ms_actual);
+    }
+}
