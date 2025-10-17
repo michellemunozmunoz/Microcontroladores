@@ -1,0 +1,53 @@
+// 1) Blink: 2000 ms OFF y 1000 ms ON (ciclo repetitivo)
+
+// ======================= EJERCICIO 1 =======================
+// PIC: PIC18F4550 | Compilador: XC8 | Fosc: 8 MHz (INTOSC)
+// LED en RB0 (activo ALTO): OFF 2000 ms, ON 1000 ms
+// ===========================================================
+#include <xc.h>
+#include <stdint.h>
+
+// --------- CONFIGURACIÓN ----------
+#pragma config FOSC = INTOSCIO_EC   // Oscilador interno, RA6/RA7 como IO/CLK
+#pragma config PLLDIV = 1
+#pragma config CPUDIV = OSC1_PLL2
+#pragma config USBDIV = 1
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF         // PORTB<4:0> digitales al reset
+#pragma config MCLRE = OFF          // Si su placa usa MCLR físico, cambie a ON
+
+#define _XTAL_FREQ 8000000UL
+
+// Mapea LED a RB0 usando LAT (evita problemas RMW)
+#define LED_TRIS   TRISBbits.TRISB0
+#define LED_LAT    LATBbits.LATB0
+#define LED_ON()   (LED_LAT = 1)
+#define LED_OFF()  (LED_LAT = 0)
+
+// Delay millisegundos seguro (usa bloques de 1 ms)
+static void delay_ms(uint16_t ms){
+    while(ms--) __delay_ms(1);
+}
+
+static void hw_init(void){
+    OSCCONbits.IRCF = 0b111; // 8 MHz
+    OSCCONbits.SCS  = 0b10;  // Reloj interno
+
+    ADCON1 = 0x0F;           // Todo digital
+    TRISB  = 0x00;           // Puerto B como salida
+    LATB   = 0x00;           // LEDs apagados
+    LED_TRIS = 0;            // RB0 salida
+    LED_OFF();
+}
+
+void main(void){
+    hw_init();
+    for(;;){
+        // Patrón: OFF 2000 ms -> ON 1000 ms
+        LED_OFF(); delay_ms(2000);
+        LED_ON();  delay_ms(1000);
+    }
+}
+
+
