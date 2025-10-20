@@ -49,5 +49,217 @@ void main(void){
         LED_ON();  delay_ms(1000);
     }
 }
+2) “5 blinks de 500 ms durante 20 s” y luego “2 blinks de 1000 ms”
+// ======================= EJERCICIO 2 =======================
+// PIC: PIC18F4550 | Compilador: XC8 | Fosc: 8 MHz (INTOSC)
+// LED en RB0: Paquetes de 5 blinks (500 on / 500 off) durante ~20 s,
+// luego 2 blinks a 1000 ms.
+// ===========================================================
+#include <xc.h>
+#include <stdint.h>
+
+#pragma config FOSC = INTOSCIO_EC
+#pragma config PLLDIV = 1
+#pragma config CPUDIV = OSC1_PLL2
+#pragma config USBDIV = 1
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = OFF
+
+#define _XTAL_FREQ 8000000UL
+
+#define LED_TRIS   TRISBbits.TRISB0
+#define LED_LAT    LATBbits.LATB0
+#define LED_ON()   (LED_LAT = 1)
+#define LED_OFF()  (LED_LAT = 0)
+
+static void delay_ms(uint16_t ms){
+    while(ms--) __delay_ms(1);
+}
+
+static void hw_init(void){
+    OSCCONbits.IRCF = 0b111; // 8 MHz
+    OSCCONbits.SCS  = 0b10;  // Reloj interno
+    ADCON1 = 0x0F;           // Todo digital
+    TRISB  = 0x00;
+    LATB   = 0x00;
+    LED_TRIS = 0;
+    LED_OFF();
+}
+
+static void blink(uint8_t veces, uint16_t on_ms, uint16_t off_ms){
+    for(uint8_t i=0; i<veces; i++){
+        LED_ON();  delay_ms(on_ms);
+        LED_OFF(); delay_ms(off_ms);
+    }
+}
+
+void main(void){
+    hw_init();
+
+    // 20 s ≈ 20000 ms. Un "paquete" de 5 blinks de 500/500 dura 5 s.
+    uint16_t restante_ms = 20000;
+    const uint16_t paquete_ms = 5u * (500u + 500u); // 5000 ms
+
+    while(restante_ms >= paquete_ms){
+        blink(5, 500, 500);
+        if(restante_ms >= paquete_ms) restante_ms -= paquete_ms;
+        else break;
+    }
+
+    // Al finalizar la ventana de ~20 s, ejecuta 2 blinks de 1000 ms
+    blink(2, 1000, 1000);
+
+    // Estado final: LED apagado
+    LED_OFF();
+    for(;;); // Mantener
+}
+
+
+// 3) Sistema de alarmas por nivel de batería (AN0)
+
+    // Entradas: Potenciómetro a AN0/RA0 (wiper a RA0, extremos a VDD y GND).
+
+    //Salidas:
+
+          //RB2 = LED ROJO (Batería baja < 25%, parpadeo rápido)
+          //RB1 = LED AMARILLO (Batería media > 25% y < 75%, parpadeo 1 s)
+          //RB0 = LED VERDE (Batería alta > 75%, encendido fijo)
+          //Umbrales ajustables con TH_LOW y TH_HIGH. Lectura ADC de 10 bits, mapeada a 0–100 %.
+
+// ======================= EJERCICIO 3 =======================
+// PIC: PIC18F4550 | Compilador: XC8 | Fosc: 8 MHz (INTOSC)
+// AN0 (RA0) mide "nivel de batería" (potenciómetro). Indicadores:
+//  - <25%  -> ROJO (RB2) parpadeo rápido 200 ms
+//  - 25–75 -> AMARILLO (RB1) parpadeo 1000 ms
+//  - >75%  -> VERDE (RB0) encendido fijo
+// ===========================================================
+#include <xc.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#pragma config FOSC = INTOSCIO_EC
+#pragma config PLLDIV = 1
+#pragma config CPUDIV = OSC1_PLL2
+#pragma config USBDIV = 1
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = OFF
+
+#define _XTAL_FREQ 8000000UL
+
+// LEDs
+#define LED_G_TRIS  TRISBbits.TRISB0   // Verde
+#define LED_Y_TRIS  TRISBbits.TRISB1   // Amarillo
+#define LED_R_TRIS  TRISBbits.TRISB2   // Rojo
+#define LED_G_LAT   LATBbits.LATB0
+#define LED_Y_LAT   LATBbits.LATB1
+#define LED_R_LAT   LATBbits.LATB2
+#define G_ON()  (LED_G_LAT = 1)
+#define G_OFF() (LED_G_LAT = 0)
+#define Y_ON()  (LED_Y_LAT = 1)
+#define Y_OFF() (LED_Y_LAT = 0)
+#define R_ON()  (LED_R_LAT = 1)
+#define R_OFF() (LED_R_LAT = 0)
+
+static void delay_ms(uint16_t ms){ while(ms--) __delay_ms(1); }
+
+// ---------- ADC ----------
+static void adc_init(void){
+    // Habilita AN0 como analógico, el resto digital
+    // PCFG=1110 -> AN0 analógico, AN1..AN12 digitales (ver datasheet)
+    ADCON1bits.PCFG = 0b1110;
+    ADCON1bits.VCFG0 = 0; // Vref+ = VDD
+    ADCON1bits.VCFG1 = 0; // Vref- = VSS
+
+    // Velocidad ADC: Fosc/64 (~125 kHz), ADFM=1 (justificado a derecha)
+    ADCON2bits.ADCS = 0b110; // T_AD = Fosc/64
+    ADCON2bits.ACQT = 0b101; // Tiempo adquisición 12 T_AD
+    ADCON2bits.ADFM = 1;
+
+    // Selecciona canal AN0 y habilita ADC
+    ADCON0bits.CHS  = 0;     // AN0
+    ADCON0bits.ADON = 1;
+    __delay_ms(2);
+}
+
+static uint16_t adc_read_ch(uint8_t ch){
+    ADCON0bits.CHS = ch & 0x0F;
+    __delay_us(10);                  // pequeña adquisición adicional
+    ADCON0bits.GO = 1;
+    while(ADCON0bits.GO);            // espera fin de conversión
+    return ((uint16_t)ADRESH << 8) | ADRESL;
+}
+
+// Promedia N lecturas para estabilidad
+static uint16_t adc_read_avg_an0(uint8_t n){
+    uint32_t acc = 0;
+    for(uint8_t i=0;i<n;i++){
+        acc += adc_read_ch(0);
+        __delay_ms(2);
+    }
+    return (uint16_t)(acc / n);
+}
+
+// Mapea 10 bits (0..1023) a porcentaje 0..100
+static uint8_t to_percent(uint16_t v10){
+    // (v10 * 100 + 511) / 1023 para redondeo
+    uint32_t num = (uint32_t)v10 * 100u + 511u;
+    return (uint8_t)(num / 1023u);
+}
+
+// ---------- HW ----------
+static void hw_init(void){
+    OSCCONbits.IRCF = 0b111; // 8 MHz
+    OSCCONbits.SCS  = 0b10;  // Interno
+    adc_init();
+
+    // RB0..RB2 salidas; resto conservador
+    TRISB = 0x00;
+    LATB  = 0x00;
+    LED_G_TRIS = 0; LED_Y_TRIS = 0; LED_R_TRIS = 0;
+    G_OFF(); Y_OFF(); R_OFF();
+}
+
+// ---------- Lógica de alarmas ----------
+#define TH_LOW   25u
+#define TH_HIGH  75u
+
+static void show_low(void){   // Bajo: rojo parpadeo rápido
+    R_ON();  Y_OFF(); G_OFF();
+    delay_ms(200);
+    R_OFF();
+    delay_ms(200);
+}
+static void show_mid(void){   // Medio: amarillo parpadeo 1 s
+    Y_ON();  R_OFF(); G_OFF();
+    delay_ms(1000);
+    Y_OFF();
+    delay_ms(1000);
+}
+static void show_high(void){  // Alto: verde fijo
+    G_ON();  R_OFF(); Y_OFF();
+    delay_ms(200);            // latido suave sin apagar
+}
+
+void main(void){
+    hw_init();
+
+    for(;;){
+        uint16_t raw = adc_read_avg_an0(8); // promedio 8 lecturas
+        uint8_t  pct = to_percent(raw);
+
+        if(pct < TH_LOW){
+            show_low();
+        }else if(pct > TH_HIGH){
+            show_high();
+        }else{
+            show_mid();
+        }
+        // (Opcional) anti-parpadeo/histeresis se puede añadir si hay ruido.
+    }
+}
 
 
