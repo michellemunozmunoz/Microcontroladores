@@ -1,1 +1,73 @@
+/* 
+ * File:   Led_lenguajeC.c
+ * Author: DAVID GOMEZ
+ *
+ * Created on 1 de octubre de 2025, 06:15 PM
 
+ * Control de LEDs por ADC
+ * Microcontrolador: PIC18F4550
+ */
+
+#include <xc.h>
+
+#pragma config FOSC = INTOSCIO_EC
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+
+#define _XTAL_FREQ 8000000
+
+void configurar_conversor_analogo(void) {
+    ADCON1 = 0x0E;
+    ADCON2 = 0xA9;
+    ADCON0 = 0x01;
+}
+
+unsigned int leer_valor_analogo(void) {
+    __delay_ms(2);
+    ADCON0bits.GO = 1;
+    while(ADCON0bits.GO);
+    return (ADRESH << 8) | ADRESL;
+}
+
+void actualizar_leds_segun_entrada(unsigned int valor_adc) {
+    float porcentaje = (valor_adc / 1023.0) * 100.0;
+    
+    if(porcentaje < 25.0) {
+        // Bajo: LED rojo
+        LATBbits.LATB0 = 1;
+        LATBbits.LATB1 = 0;
+        LATBbits.LATB2 = 0;
+    }
+    else if(porcentaje < 75.0) {
+        // Medio: LED amarillo
+        LATBbits.LATB0 = 0;
+        LATBbits.LATB1 = 1;
+        LATBbits.LATB2 = 0;
+    }
+    else {
+        // Alto: LED azul
+        LATBbits.LATB0 = 0;
+        LATBbits.LATB1 = 0;
+        LATBbits.LATB2 = 1;
+    }
+}
+
+void main(void) {
+    unsigned int lectura_actual;
+    
+    OSCCON = 0x72;
+    TRISAbits.TRISA0 = 1;
+    TRISBbits.TRISB0 = 0;   // LED rojo
+    TRISBbits.TRISB1 = 0;   // LED amarillo  
+    TRISBbits.TRISB2 = 0;   // LED azul
+    LATB = 0x00;
+    
+    configurar_conversor_analogo();
+
+    while(1) {
+        lectura_actual = leer_valor_analogo();
+        actualizar_leds_segun_entrada(lectura_actual);
+        __delay_ms(200);
+    }
+}
