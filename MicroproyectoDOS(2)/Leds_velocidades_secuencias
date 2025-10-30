@@ -1,0 +1,146 @@
+/**
+* File:   Led_lenguajeC.c
+ * Author: DAVID GOMEZ
+ * Created on 2 de octubre de 2025, 08:32 PM
+ */
+
+#include <xc.h>
+
+#pragma config FOSC = INTOSCIO_EC
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = ON    // Ajuste: MCLR habilitado
+#pragma config IESO = OFF    // Ajuste: Switchover deshabilitado
+#pragma config FCMEN = OFF   // Ajuste: Monitor de clock deshabilitado
+
+#define _XTAL_FREQ 8000000
+
+// Variables globales
+volatile unsigned char velocidad = 1;     // 0=lento, 1=normal, 2=rapido
+volatile unsigned char secuencia_actual = 0; // 0, 1, 2...
+volatile unsigned char boton_vel_presionado = 0;
+volatile unsigned char boton_sec_presionado = 0;
+
+// Tiempos para cada velocidad (en ms)
+const unsigned int tiempos[] = {800, 400, 150};
+
+// Prototipos
+void configurar_puertos(void);
+void configurar_interrupciones(void);
+void ejecutar_secuencia(unsigned char seq);
+void delay_velocidad(void);
+
+// Secuencia 0: Carrera derecha-izquierda
+void secuencia_carrera(void) {
+    LATD = 0x01; __delay_ms(100); delay_velocidad();  // LED1
+    LATD = 0x02; __delay_ms(100); delay_velocidad();  // LED2  
+    LATD = 0x04; __delay_ms(100); delay_velocidad();  // LED3
+    LATD = 0x08; __delay_ms(100); delay_velocidad();  // LED4
+}
+
+// Secuencia 1: Alternancia interna-externa
+void secuencia_alternante(void) {
+    LATD = 0x09; __delay_ms(100); delay_velocidad();  // LED1 + LED4
+    LATD = 0x00; __delay_ms(100); delay_velocidad();
+    LATD = 0x06; __delay_ms(100); delay_velocidad();  // LED2 + LED3
+    LATD = 0x00; __delay_ms(100); delay_velocidad();
+}
+
+// Secuencia 2: Barras progresivas
+void secuencia_barras(void) {
+    LATD = 0x01; __delay_ms(100); delay_velocidad();  // 1 LED
+    LATD = 0x03; __delay_ms(100); delay_velocidad();  // 2 LEDs
+    LATD = 0x07; __delay_ms(100); delay_velocidad();  // 3 LEDs
+    LATD = 0x0F; __delay_ms(100); delay_velocidad();  // 4 LEDs
+    LATD = 0x07; __delay_ms(100); delay_velocidad();  // 3 LEDs
+    LATD = 0x03; __delay_ms(100); delay_velocidad();  // 2 LEDs
+}
+
+// Secuencia 3: Aleatorio personalizado
+void secuencia_personalizada(void) {
+    LATD = 0x05; __delay_ms(100); delay_velocidad();  // LED1 + LED3
+    LATD = 0x0A; __delay_ms(100); delay_velocidad();  // LED2 + LED4
+    LATD = 0x03; __delay_ms(100); delay_velocidad();  // LED1 + LED2
+    LATD = 0x0C; __delay_ms(100); delay_velocidad();  // LED3 + LED4
+}
+
+void delay_velocidad(void) {
+    unsigned int i;
+    for(i = 0; i < tiempos[velocidad]; i++) {
+        __delay_ms(1);
+    }
+}
+
+// Ajuste: Sintaxis de interrupción más compatible
+void __interrupt() ISR(void) {
+    // Botón velocidad (RB0)
+    if(INTCONbits.INT0IF) {
+        if(!boton_vel_presionado) {
+            __delay_ms(50);  // Ajuste: Anti-rebote
+            velocidad++;
+            if(velocidad > 2) velocidad = 0;
+            boton_vel_presionado = 1;
+        }
+        INTCONbits.INT0IF = 0;
+    }
+    
+    // Botón secuencia (RB1)
+    if(INTCON3bits.INT1IF) {
+        if(!boton_sec_presionado) {
+            __delay_ms(50);  // Ajuste: Anti-rebote
+            secuencia_actual++;
+            if(secuencia_actual > 3) secuencia_actual = 0;
+            boton_sec_presionado = 1;
+        }
+        INTCON3bits.INT1IF = 0;
+    }
+}
+
+void configurar_puertos(void) {
+    TRISBbits.TRISB0 = 1;    // Botón velocidad
+    TRISBbits.TRISB1 = 1;    // Botón secuencia
+    TRISD = 0x00;            // Puerto D completo como salida (LEDs)
+    LATD = 0x00;             // Apagar todos los LEDs
+    
+    ADCON1 = 0x0F;           // Todo digital
+}
+
+void configurar_interrupciones(void) {
+    // Interrupción RB0 (velocidad)
+    INTCONbits.GIE = 1;
+    INTCONbits.INT0IE = 1;
+    INTCONbits.INT0IF = 0;
+    INTCON2bits.INTEDG0 = 0;  // Flanco de bajada
+    
+    // Interrupción RB1 (secuencia)  
+    INTCON3bits.INT1IE = 1;
+    INTCON3bits.INT1IF = 0;
+    INTCON2bits.INTEDG1 = 0;  // Flanco de bajada
+    
+    INTCONbits.PEIE = 1;      // Ajuste: Habilitar interrupciones periféricas
+}
+
+void main(void) {
+    OSCCON = 0x72;           // Oscilador 8MHz
+    
+    configurar_puertos();
+    configurar_interrupciones();
+
+    while(1) {
+        // Ejecutar secuencia actual
+        switch(secuencia_actual) {
+            case 0: secuencia_carrera(); break;
+            case 1: secuencia_alternante(); break;
+            case 2: secuencia_barras(); break;
+            case 3: secuencia_personalizada(); break;
+        }
+        
+        // Reset flags de botones (anti-rebote)
+        boton_vel_presionado = 0;
+        boton_sec_presionado = 0;
+        
+        // Ajuste: Pequeño delay para estabilidad
+        __delay_ms(10);
+    }
+}
