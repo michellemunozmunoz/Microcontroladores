@@ -1,0 +1,138 @@
+/* 
+ * File:   holamundo.c
+ * Author: DAVID GOMEZ
+ *
+ * Created on 17 de octubre de 2025, 07:14 PM
+ */
+
+#include <xc.h>
+
+// Configuración del sistema
+#pragma config FOSC = INTOSCIO_EC
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = ON
+
+#define _XTAL_FREQ 8000000
+
+// Definición de pines para control del display
+#define LCD_REGISTRO_SELECCION LATAbits.LATA0
+#define LCD_HABILITAR LATAbits.LATA1
+#define LCD_DATO_4 LATAbits.LATA2
+#define LCD_DATO_5 LATAbits.LATA3
+#define LCD_DATO_6 LATAbits.LATA4
+#define LCD_DATO_7 LATAbits.LATA5
+
+// Prototipos de funciones
+void Inicializar_Display(void);
+void Enviar_Instruccion(unsigned char instruccion);
+void Mostrar_Caracter(unsigned char caracter);
+void Mostrar_Texto(const char *cadena);
+void Fijar_Posicion(unsigned char fila, unsigned char columna);
+void Limpiar_Display(void);
+void Configurar_Puerto_Datos(unsigned char nibble);
+
+// Función principal
+void main(void) {
+    // Ajustar oscilador interno a 8 MHz
+    OSCCON = 0x72;
+    
+    // Configurar puertos
+    TRISA = 0x00;  // Puerto A como salida
+    LATA = 0x00;   // Estado inicial bajo
+    
+    // Inicializar y usar display
+    Inicializar_Display();
+    Fijar_Posicion(1, 4);
+    Mostrar_Texto("HOLA MUNDO");
+    Fijar_Posicion(2, 6);
+    Mostrar_Texto("PIC");
+
+    // Mantener programa ejecutando
+    while(1) {
+        // El programa permanece activo
+    }
+}
+
+// Configura los pines de datos del display
+void Configurar_Puerto_Datos(unsigned char nibble) {
+    LCD_DATO_4 = (nibble >> 0) & 0x01;
+    LCD_DATO_5 = (nibble >> 1) & 0x01;
+    LCD_DATO_6 = (nibble >> 2) & 0x01;
+    LCD_DATO_7 = (nibble >> 3) & 0x01;
+}
+
+// Envía comando al display
+void Enviar_Instruccion(unsigned char instruccion) {
+    LCD_REGISTRO_SELECCION = 0;  // Modo instrucción
+    
+    // Transferir nibble superior
+    Configurar_Puerto_Datos(instruccion >> 4);
+    LCD_HABILITAR = 1;
+    __delay_us(50);
+    LCD_HABILITAR = 0;
+    
+    // Transferir nibble inferior
+    Configurar_Puerto_Datos(instruccion & 0x0F);
+    LCD_HABILITAR = 1;
+    __delay_us(50);
+    LCD_HABILITAR = 0;
+    
+    // Tiempo para comandos que lo requieren
+    if(instruccion == 0x01) __delay_ms(3);
+}
+
+// Muestra un carácter en pantalla
+void Mostrar_Caracter(unsigned char caracter) {
+    LCD_REGISTRO_SELECCION = 1;  // Modo datos
+    
+    // Transferir nibble superior
+    Configurar_Puerto_Datos(caracter >> 4);
+    LCD_HABILITAR = 1;
+    __delay_us(50);
+    LCD_HABILITAR = 0;
+    
+    // Transferir nibble inferior
+    Configurar_Puerto_Datos(caracter & 0x0F);
+    LCD_HABILITAR = 1;
+    __delay_us(50);
+    LCD_HABILITAR = 0;
+    
+    __delay_us(100);
+}
+
+// Inicializa el display LCD
+void Inicializar_Display(void) {
+    __delay_ms(25);              // Espera inicial de estabilización
+    Enviar_Instruccion(0x02);    // Inicialización en modo 4 bits
+    Enviar_Instruccion(0x28);    // Configuración: 2 líneas, caracteres 5x8
+    Enviar_Instruccion(0x0C);    // Display encendido, cursor apagado
+    Enviar_Instruccion(0x06);    // Modo incremento automático
+    Enviar_Instruccion(0x01);    // Limpiar pantalla
+    __delay_ms(3);
+}
+
+// Muestra cadena de texto
+void Mostrar_Texto(const char *cadena) {
+    while(*cadena) {
+        Mostrar_Caracter(*cadena++);
+    }
+}
+
+// Posiciona el cursor
+void Fijar_Posicion(unsigned char fila, unsigned char columna) {
+    unsigned char direccion;
+    if(fila == 1) {
+        direccion = 0x80 + (columna - 1);
+    } else {
+        direccion = 0xC0 + (columna - 1);
+    }
+    Enviar_Instruccion(direccion);
+}
+
+// Limpia la pantalla
+void Limpiar_Display(void) {
+    Enviar_Instruccion(0x01);
+    __delay_ms(3);
+}
