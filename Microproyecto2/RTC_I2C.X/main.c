@@ -1,8 +1,8 @@
 /* 
  * File:   main.c
- * Author: ANDER
+ * Author: EQUIPO 
  *
- * Created on 20 de octubre de 2025, 07:08 PM
+ * Created on 31 de octubre de 2025, 07:08 PM
  */
 
 #include <xc.h>

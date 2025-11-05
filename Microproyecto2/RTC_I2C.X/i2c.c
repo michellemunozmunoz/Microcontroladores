@@ -1,8 +1,8 @@
 /* 
  * File:   i2c.c
- * Author: ANDER
+ * Author: EQUIPO
  *
- * Created on 20 de octubre de 2025, 07:00 PM
+ * Created on 31 de octubre de 2025, 07:00 PM
  */
 
 #include "i2c.h"

@@ -73,14 +73,11 @@ if(SDA_READ) data |= 1;
     SCL=0; SDA_TRIS=1;
     return data;
 }
+}
+}
+}
+}
 
-    
-
-
-       
-    }
-
-    
 I2C_ReadBit(void) {
     uint8_t bit;
     SDA_TRIS = 1;
