@@ -1,5 +1,7 @@
 //Código de interrupciones y 4 leds (funcional)
-//Actualización 6/11/2025 LEDS_INTERRUPCIÓN
+ //Descripción: Control de 4 LEDs con 2 botones usando interrupciones externas. (Actualización 7/11/2025)
+ //             RB0 cambia la secuencia de LEDs.
+ //             RB1 cambia la velocidad (retardo).
 #include <xc.h>
 #include <pic18f4550.h>
 //================================ CONFIGURACIÓN DEL PIC18F4550 =============================
@@ -12,12 +14,31 @@
 #define _XTAL_FREQ 8000000UL 
 
 //================================== PROTOTIPOS =======================================
-void Osc_Init(void);
-void IO_init(void);
-void Int_Init(void);
-void aplicarPatron(unsigned char sec, unsigned char paso);
+void MCU_Init(void);
+void GPIO_Init(void);
+void INT_Init(void);
+void actualizarRetardo(void);
 void delay_ms_variable(unsigned int t);
 
+// ============================== RUTINA DE INTERRUPCIÓN ==============================
+void _interupt() ISR(void)
+{
+    //INT0 (RB0) : Cambiar secuencia
+    if (INTCONbits.INT0IF) {
+       secuencia++;
+       if (secuencia > 2) secuencia = 0; // volver a 0 si pasa de 2
+       paso = 0;
+       INTCONbits.INT0IF = 0;
+}
+
+    //INT1(RB1) : cambiar velocidad
+    if (INTCON3bits.INT1IF) {
+       velocidad++;
+       if (velocidad > 3) velocidad = 0; // 4 niveles: 0..3
+       actualizarRetardo();
+       INTCON3bits.INT1IF = 0;            // limpiar bandera
+    }
+}
 //-------------------------Variables globales-----------------------------------//
 volatile unsigned char secuencia = 0; // número de secuencia (072)
 volatile unsigned char velocidad = 0; // nivel de velocidad (073)
@@ -50,33 +71,21 @@ if (INTCON3.bits.INT1IF) {
    velocidad++;
    if(velocidad > 3) velocidad = 0;
 
-// actualiza retardo según velocidad
-   switch (velocidad) {
-      case 0: delay_ms_actual = 600; break;
-      case 1: delay_ms_actual = 400; break;
-      case 2: delay_ms_actual = 200; break;
-      case 3: delay_ms_actual = 100; break;
-    }
-    INTCON3bits.INT1IF = 0 //limpia bandera
- }
-}
-
 
 
 // ---------------- PROGRAMA PRINCIPAL ----------------
 void main(void) {
-    Osc_Init();
-    IO_Init();
-    Int_Init();
+    MCU_Init();
+    GPIO_Init();
+    INT_Init();
+
     while (1) { 
         //muestra el paso actual de la secuencia actual
-        aplicarPatron (secuencia, paso);
+        LATD = patrones[secuencia][paso];
 
         // avanza al siguiente paso
         paso++;
-        if (paso > 7) {
-            paso = 0;
-        }
+        if (paso > 7) paso = 0;
 
         // retardo según la velocidad escogida
         delay_ms_variable(delay_ms_actual);
@@ -86,32 +95,32 @@ void main(void) {
 //============================= IMPLEMENTACIÓN DE FUNCIONES ================================
 
 //Configura el oscilador igual que en el código 1 
-void Osc_Init(void) { 
+void MCU_Init(void) { 
      // IRCF = 111 --> 8MHz
-     OSCCONbits.IRCF2 = 1;
-     OSCCONbits.IRCF1 = 1;
-     OSCCONbits.IRCF0 = 1;
-     OSCCONbits.SCS   = 1; //usa el oscilador interno
+     OSCCONbits.IRCF = 0b111;   // 8 MHz
+     OSCCONbits.SCS  = 0b10;    // usar oscilador interno
+
+     ADCON1 = 0x0F;             // puertos AN como digitales
+     CMCON = 0x07;              // comparadores off
 }
 
 //Configura puertos 
-void IO_Init(void) { 
-   ADCON1 = 0x0F ; //todo digital
+void GPIO_Init(void) { 
+    // RD0..RD3 como salidas (LEDs), RD4..RD7 como entradas/no usados
+    TRISD = 0xF0;  // 1111 0000 -> RD0..RD3 salidas
+    LATD  = 0x00;
 
-   // RD0 .. RD3 como salidas para los LEDs, RD4..RD7 como entradas 
-   TRISD = OxF0;
-   LATD = 0x00;
+    // Botones en RB0 y RB1
+    TRISBbits.TRISB0 = 1;   // entrada
+    TRISBbits.TRISB1 = 1;   // entrada
 
-   //RB0 y RB1 como entradas (botones)
-   TRISBbits.TRISB0 = 1;
-   TRISBbits.TRISB1 = 1;
-
-   //deshabilita pull-ups en PORTB
-   INTCONT2bits.RBPU = 1;
+    // Deshabilitar pull-ups de PORTB (o activarlos si quieres)
+    INTCON2bits.RBPU = 1;   // 1 = pull-ups desactivados
 }
 
+
 // Configura interrupciones externas como el código 2 pero ordenado
-void Int_Init(void) {
+void INT_Init(void) {
     // INT0 en flanco de bajada
     INTCON2bits.INTEDG0 = 0;
     INTCONbits.INT0IF   = 0;
@@ -124,14 +133,17 @@ void Int_Init(void) {
 
     // habilita interrupciones globales
     INTCONbits.GIE  = 1;
-    INTCONbits.PEIE = 1;
 }
 
-// Manda el patrón al puerto D (solo 4 bits bajos)
-void aplicarPatron(unsigned char sec, unsigned pasoLocal) { 
-    // limpiamos solo 4 bits bajos
-    LATD & = 0xF0;
-    LATD |= (patrones [sec] [pasoLocal] & 0x0F);
+// actualiza retardo según velocidad
+void actualizarRetardo(void)
+{
+   switch (velocidad) {
+      case 0: delay_ms_actual = 600; break;
+      case 1: delay_ms_actual = 400; break;
+      case 2: delay_ms_actual = 200; break;
+      case 3: delay_ms_actual = 100; break;
+ }
 }
 
 // Retardo variable en ms
