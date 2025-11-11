@@ -1,0 +1,176 @@
+/* 
+ * File:   Temperatura.c
+ * Author: DAVID GOMEZ
+ *
+ * Created on 30 de octubre de 2025, 07:42 PM
+ */
+
+#include <xc.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#define _XTAL_FREQ 8000000UL
+
+// CONFIGURACIÓN DEL PIC18F4550
+#pragma config FOSC = HSPLL_HS
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = ON
+
+// PINS DEL LCD
+#define RS LATBbits.LATB0
+#define EN LATBbits.LATB1
+#define D4 LATBbits.LATB2
+#define D5 LATBbits.LATB3
+#define D6 LATBbits.LATB4
+#define D7 LATBbits.LATB5
+
+// PINS DEL DHT11
+#define DHT11_PIN PORTBbits.RB0
+#define DHT11_TRIS TRISBbits.TRISB0
+
+// VARIABLES DHT11
+uint8_t humidity_int, humidity_dec, temp_int, temp_dec, checksum;
+
+// LCD 4-BIT 
+void LCD_EnablePulse(void){
+    EN = 1; __delay_us(2); EN = 0; __delay_us(2);
+}
+
+void LCD_Command(unsigned char cmd){
+    RS = 0;
+    D4 = (cmd >> 4) & 1;
+    D5 = (cmd >> 5) & 1;
+    D6 = (cmd >> 6) & 1;
+    D7 = (cmd >> 7) & 1;
+    LCD_EnablePulse();
+    D4 = (cmd >> 0) & 1;
+    D5 = (cmd >> 1) & 1;
+    D6 = (cmd >> 2) & 1;
+    D7 = (cmd >> 3) & 1;
+    LCD_EnablePulse();
+}
+
+void LCD_Char(unsigned char data){
+    RS = 1;
+    D4 = (data >> 4) & 1;
+    D5 = (data >> 5) & 1;
+    D6 = (data >> 6) & 1;
+    D7 = (data >> 7) & 1;
+    LCD_EnablePulse();
+    D4 = (data >> 0) & 1;
+    D5 = (data >> 1) & 1;
+    D6 = (data >> 2) & 1;
+    D7 = (data >> 3) & 1;
+    LCD_EnablePulse();
+}
+
+void LCD_Init(void){
+    TRISB = 0x00; LATB = 0x00;
+    __delay_ms(20);
+    LCD_Command(0x02);
+    LCD_Command(0x28);
+    LCD_Command(0x0C);
+    LCD_Command(0x06);
+    LCD_Command(0x01);
+    __delay_ms(2);
+}
+
+void LCD_String(const char *msg){
+    while(*msg) LCD_Char(*msg++);
+}
+
+void LCD_String_xy(unsigned char row, unsigned char pos, const char *msg){
+    if(row == 0) LCD_Command(0x80 + pos);
+    else LCD_Command(0xC0 + pos);
+    LCD_String(msg);
+}
+
+void LCD_Clear(void){
+    LCD_Command(0x01);
+    __delay_ms(2);
+}
+
+//DHT11
+static uint8_t waitForState(uint8_t state, uint16_t timeout_us){
+    while(((DHT11_PIN & 1) != state)){
+        if(timeout_us-- == 0) return 0;
+        __delay_us(1);
+    }
+    return 1;
+}
+
+void DHT11_Start(void){
+    DHT11_TRIS = 0;
+    LATBbits.LATB0 = 0;
+    __delay_ms(18);
+    LATBbits.LATB0 = 1;
+    __delay_us(20);
+    DHT11_TRIS = 1;
+}
+
+uint8_t DHT11_CheckResponse(void){
+    if(!waitForState(0, 100)) return 0;
+    if(!waitForState(1, 100)) return 0;
+    return 1;
+}
+
+uint8_t DHT11_ReadData(void){
+    uint8_t i, data = 0;
+    for(i=0;i<8;i++){
+        if(!waitForState(0, 1000)) return 0xFF;
+        if(!waitForState(1, 1000)) return 0xFF;
+        __delay_us(40);
+        if(DHT11_PIN & 1) data = (data<<1)|1;
+        else data = (data<<1);
+    }
+    return data;
+}
+
+
+void main(void){
+    char value[16];
+    
+    // CONFIGURACIÓN DEL PIC
+    OSCCONbits.IRCF = 0b111; // 8 MHz
+    OSCCONbits.SCS = 0b10;   // Osc interno
+    ADCON1 = 0x0F;           // Pines digitales
+    TRISBbits.TRISB0 = 1;    // DHT11 como input
+    
+    LCD_Init();
+    LCD_String_xy(0,0,"BIENVENIDO");
+    LCD_String_xy(1,0,"SENSOR DHT11");
+    __delay_ms(1500);
+    LCD_Clear();
+    
+    while(1){
+        DHT11_Start();
+        if(DHT11_CheckResponse()){
+            humidity_int = DHT11_ReadData();
+            humidity_dec = DHT11_ReadData();
+            temp_int = DHT11_ReadData();
+            temp_dec = DHT11_ReadData();
+            checksum = DHT11_ReadData();
+            
+            if(((uint16_t)humidity_int+humidity_dec+temp_int+temp_dec)==checksum){
+                LCD_Clear();
+                LCD_String_xy(0,0,"RH: ");
+                sprintf(value,"%d.%d %%",humidity_int,humidity_dec);
+                LCD_String(value);
+                LCD_String_xy(1,0,"TEMP: ");
+                sprintf(value,"%d.%d ",temp_int,temp_dec);
+                LCD_String(value);
+                LCD_Char(0xDF); 
+                LCD_Char('C');
+            }else{
+                LCD_Clear();
+                LCD_String_xy(0,0,"ERROR CHECKSUM");
+            }
+        }else{
+            LCD_Clear();
+            LCD_String_xy(0,0,"NO RESPUESTA");
+        }
+        __delay_ms(2000);
+    }
+}
