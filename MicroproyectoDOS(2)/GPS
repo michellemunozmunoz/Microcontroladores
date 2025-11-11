@@ -1,0 +1,177 @@
+/* 
+ * File:   Gps.c
+ * Author: DAVID GOMEZ
+ *
+ * Created on 28 de octubre de 2025, 10:28 PM
+ */
+
+
+#include <xc.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#pragma config FOSC = INTOSCIO_EC
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config MCLRE = OFF   
+#pragma config PBADEN = OFF
+
+#define _XTAL_FREQ 8000000
+
+// LCD 16x2 
+#define LCD_RS LATAbits.LATA0
+#define LCD_EN LATAbits.LATA1
+#define LCD_D4 LATAbits.LATA2
+#define LCD_D5 LATAbits.LATA3
+#define LCD_D6 LATAbits.LATA4
+#define LCD_D7 LATAbits.LATA5
+
+//VARIABLES GPS 
+#define BUFFER_NMEA 100
+char buffer_gps[BUFFER_NMEA];
+uint8_t indice_gps = 0;
+
+double latitud = 0.0;
+double longitud = 0.0;
+char estado_gps[16] = "Buscando...";
+char hora_utc[10] = "--:--:--";
+
+//LCD FUNCIONES 
+void LCD_Pulso(void){
+    LCD_EN = 1; __delay_us(40);
+    LCD_EN = 0; __delay_us(40);
+}
+void LCD_Comando(unsigned char cmd){
+    LCD_RS = 0;
+    LCD_D4 = (cmd >> 4) & 1;
+    LCD_D5 = (cmd >> 5) & 1;
+    LCD_D6 = (cmd >> 6) & 1;
+    LCD_D7 = (cmd >> 7) & 1;
+    LCD_Pulso();
+    LCD_D4 = cmd & 1;
+    LCD_D5 = (cmd >> 1) & 1;
+    LCD_D6 = (cmd >> 2) & 1;
+    LCD_D7 = (cmd >> 3) & 1;
+    LCD_Pulso();
+    if(cmd == 0x01) __delay_ms(2);
+}
+void LCD_Inicializar(void){
+    TRISA = 0x00;
+    __delay_ms(25);
+    LCD_Comando(0x02); LCD_Comando(0x28);
+    LCD_Comando(0x0C); LCD_Comando(0x06);
+    LCD_Comando(0x01);
+}
+void LCD_Posicion(uint8_t fila, uint8_t col){
+    uint8_t addr = (fila==1)?0x80:0xC0;
+    LCD_Comando(addr + (col-1));
+}
+void LCD_Caracter(char c){
+    LCD_RS = 1;
+    LCD_D4 = (c >> 4) & 1;
+    LCD_D5 = (c >> 5) & 1;
+    LCD_D6 = (c >> 6) & 1;
+    LCD_D7 = (c >> 7) & 1;
+    LCD_Pulso();
+    LCD_D4 = c & 1;
+    LCD_D5 = (c >> 1) & 1;
+    LCD_D6 = (c >> 2) & 1;
+    LCD_D7 = (c >> 3) & 1;
+    LCD_Pulso();
+    __delay_us(100);
+}
+void LCD_Texto(const char* txt){ while(*txt) LCD_Caracter(*txt++); }
+void LCD_Limpiar(void){ LCD_Comando(0x01); }
+
+// UART GPS
+void UART_Inicializar(void){
+    TRISCbits.TRISC6 = 0; // TX salida
+    TRISCbits.TRISC7 = 1; // RX entrada
+    SPBRG = 51;           // 9600 bps @8MHz
+    TXSTAbits.BRGH = 1;
+    RCSTAbits.SPEN = 1;
+    TXSTAbits.TXEN = 1;
+    RCSTAbits.CREN = 1;
+}
+char UART_Leer(void){ while(!PIR1bits.RCIF); return RCREG; }
+uint8_t UART_DatosListos(void){ return PIR1bits.RCIF; }
+
+// FUNCIONES GPS 
+double Convertir_NMEA_Decimal(const char* nmea_coord, char hemis){
+    if(strlen(nmea_coord) < 4) return 0.0;
+    int dg = (strlen(nmea_coord) > 5)?2:3;
+    char grados[4]={0}; strncpy(grados, nmea_coord, dg);
+    double g = atof(grados);
+    double m = atof(nmea_coord + dg);
+    double dec = g + (m/60.0);
+    if(hemis=='S'||hemis=='W') dec = -dec;
+    return dec;
+}
+
+void Procesar_Trama_GPS(const char* trama){
+    if(strncmp(trama, "$GPRMC", 6)==0){
+        char copia[BUFFER_NMEA]; strcpy(copia, trama);
+        char* token = strtok(copia, ",");
+        uint8_t campo = 0;
+        char lat_nmea[20]="", lon_nmea[20]="";
+        char hem_lat='N', hem_lon='E', validez='V';
+        while(token!=NULL){
+            campo++;
+            switch(campo){
+                case 2: if(strlen(token)>=6)
+                    snprintf(hora_utc,10,"%.2s:%.2s:%.2s",token,token+2,token+4); break;
+                case 3: validez = token[0]; break;
+                case 4: strcpy(lat_nmea, token); break;
+                case 5: hem_lat = token[0]; break;
+                case 6: strcpy(lon_nmea, token); break;
+                case 7: hem_lon = token[0]; break;
+            }
+            token = strtok(NULL, ",");
+        }
+        if(validez=='A' && strlen(lat_nmea)>0 && strlen(lon_nmea)>0){
+            latitud = Convertir_NMEA_Decimal(lat_nmea, hem_lat);
+            longitud = Convertir_NMEA_Decimal(lon_nmea, hem_lon);
+            strcpy(estado_gps, "Activo");
+        } else strcpy(estado_gps, "Sin Señal");
+    }
+}
+
+void Mostrar_GPS(void){
+    char linea[17];
+    LCD_Posicion(1,1);
+    sprintf(linea, "GPS:%s %s", estado_gps, hora_utc);
+    LCD_Texto(linea);
+    LCD_Posicion(2,1);
+    if(latitud!=0.0 && longitud!=0.0)
+        sprintf(linea, "Lat:%.2f Lng:%.2f", latitud, longitud);
+    else sprintf(linea, "Sin coordenadas");
+    LCD_Texto(linea);
+}
+
+//MAIN 
+void main(void){
+    OSCCON = 0x70;  // 8 MHz interno
+    ADCON1 = 0x0F;  // todo digital
+    CMCON = 0x07;
+
+    LCD_Inicializar();
+    UART_Inicializar();
+
+    LCD_Texto("Iniciando GPS...");
+    __delay_ms(1500);
+    LCD_Limpiar();
+
+    while(1){
+        if(UART_DatosListos()){
+            char d = UART_Leer();
+            if(d == '\n'){
+                buffer_gps[indice_gps]='\0';
+                Procesar_Trama_GPS(buffer_gps);
+                Mostrar_GPS();
+                indice_gps=0;
+            } else if(d!='\r' && indice_gps<BUFFER_NMEA-1)
+                buffer_gps[indice_gps++]=d;
+        }
+    }
+}
