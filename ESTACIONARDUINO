@@ -1,0 +1,45 @@
+/*
+  Estación IoT: ESP32 + WiFi + WebServer
+  Sensores: DHT11 (Temp/Hum), MQ-135 (calidad aire - lectura ADC), LDR (luz - ADC)
+  Periféricos: OLED SSD1306 por I2C + RTC 
+*/
+
+#include <WiFi.h>
+#include <WebServer.h>
+#include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "RTClib.h"
+
+// ----------------- WiFi -----------------
+static const char* WIFI_SSID = "David";
+static const char* WIFI_PASS = "David2706";
+
+// -------- CONFIGURACIÓN DE PINES --------
+#define DHTPIN 2           // GPIO2 - DHT11 (seguro para WiFi)
+#define DHTTYPE DHT11
+#define MQ135_PIN 3        // GPIO3 - MQ-135 (seguro para WiFi)  
+#define LDR_PIN 1          // GPIO1 - LDR (seguro para WiFi)
+
+// ----- PINES I2C -----
+#define I2C_SDA 4         // SDA en GPIO4
+#define I2C_SCL 5         // SCL en GPIO5
+
+// ----------------- OLED -----------------
+#define OLED_W       128
+#define OLED_H       64
+#define OLED_RST     -1
+Adafruit_SSD1306 oled(OLED_W, OLED_H, &Wire, OLED_RST);
+
+// ----------------- RTC -----------------
+RTC_DS3231 rtc;
+
+// ----------------- DHT -----------------
+DHT dht(PIN_DHT, DHT_MODEL);
+
+// ----------------- Servidor -----------------
+WebServer http(80);
+
+
+
