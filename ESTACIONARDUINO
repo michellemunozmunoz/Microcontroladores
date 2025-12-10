@@ -41,5 +41,20 @@ DHT dht(PIN_DHT, DHT_MODEL);
 // ----------------- Servidor -----------------
 WebServer http(80);
 
+// -------- VARIABLES GLOBALES --------
+float tempMax = -1000, tempMin = 1000;
+float humMax = -1000, humMin = 1000;
+float airQualityMax = -1000, airQualityMin = 1000;
+float temp = 0, hum = 0, airQuality = 0;
+bool systemEnabled = true;
+String currentTime = "--:--:--";
+String currentDate = "--/--/--";
+int lightLevel = 0;
+bool isDayMode = true;
+bool showPausedMessage = false;
+unsigned long pausedMessageTime = 0;
+bool gasAlert = false;
+bool ventilationAlert = false;
+bool evacuationAlert = false;
 
 
