@@ -1,0 +1,77 @@
+;===================================================
+; Código en Assembler para PIC18F4550 (de momento)
+; Retardo de 1s repetida
+; Frecuencia: 8MHz
+;====================================================
+
+ #include <xc.inc>
+
+ CONFIG FOSC = INTOSCIO_EC
+ CONFIG WDT = OFF
+ CONFIG LVP = OFF
+
+ PSECT resetVec, class=CODE, reloc=2
+ ORG   0x00
+ GOTO  Inicio 
+
+ PSCET main_code, class=CODE, reloc=2
+
+
+Inicio: 
+ CLRF  TRISB
+ CLRF   LATB
+
+
+Lopp: 
+;-----LED encendido 5 segundos-----
+ BSF   LATB, 0     ; LED ON
+ CALL  Retardo_1s
+ CALL  Retardo_1s
+ CALL  Retardo_1s
+ CALL  Retardo_1s
+ CALL  Retardo_1s
+
+;-----LED apagado 2 segundos-----
+ BSF   LATB, 0     ; LED OFF
+ CALL  Retardo_1s
+ CALL  Retardo_1s
+
+ GOTO  Loop        ; Repetir siempre
+
+
+;============================================
+; Subrutina de Retardo de 1 segundo
+;============================================
+
+Retardo_1s:
+ MOVLM  250
+ MOVWF  ControladorExterno
+
+LoopExterno:
+ MOVLM  250
+ MOVWF  ContadorInterno
+
+LoopInterno: 
+ NOP
+ NOP
+ NOP 
+
+ DECFSZ  ContadorInterno, F
+ GOTO    LoopInterno
+
+
+ DECFSZ  ControladorExterno, F
+ GOTO    LoopExterno
+
+ RETURN
+
+;==============================================
+;Variables
+;==============================================
+ PSECT undata
+ContadorExterno: DS 1
+ContadorInterno: DS 1
+
+ END
+
+ 

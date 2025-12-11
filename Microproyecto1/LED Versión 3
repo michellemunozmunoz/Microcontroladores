@@ -1,0 +1,90 @@
+;Archivo: LED.asm
+; Configuración para PIC18F452, MPLAB X IDE v6.25
+; Enciende LED 5s y apaga 2s usando reloj interno 8MHz 
+
+   #include <xc.inc>
+
+; CONFIGURACIÓN DEL MICROCONTROLADOR
+       ; Oscilador interno OSCCON
+
+    CONFIG  WDT = OFF       
+    CONFIG  LVP = OFF       
+    CONFIG  PBADEN = OFF
+
+; Variables en RAM, en BANK0 usando variables de lugar seguro
+    Contador1    EQU 0x20
+    Contador2    EQU 0x21
+    Contador3    EQU 0x22
+    Contador12   EQU 0x23
+
+    ORG 0x00
+    GOTO inicio
+
+; ------------------------------
+inicio:
+    ; Configurar oscilador interno 8MHz
+    BANKSEL OSCCON ;Luego de revisar los códigos, encontré el error de las versiones del PIC18F452, ya que al leer el manual del mismo, me di cuenta de que no tiene oscilador interno, pot lo que la función OSCCON no es requerida. 
+    MOVLW 0x70    ; IRCF2:IRCF0=111 para 8MHz, SCS=01 
+    MOVWF OSCCON, A
+
+    ; Espera un poco para estabilizar reloj 
+    NOP
+    NOP
+    NOP
+    NOP
+
+; Configurar PORTD como salida
+    BANKSEL TRISD
+    CLRF    TRISD, A       ; Puerto D como salida
+
+    BANKSEL LATD
+    CLRF    LATD, A        ; Apaga LEDs inicialmente
+
+loop:
+    BANKSEL LATD
+    BSF     LATD, 0, A     ; Enciende LED en RD0
+    CALL    retraso5s
+    BCF     LATD, 0, A     ; Apaga LED en RD0
+    CALL    retraso2s
+    GOTO    loop
+
+
+; RETARDO DE 5 SEGUNDOS (5000 ms)
+retraso5s:
+    MOVLW 50       
+    MOVWF Contador1, B
+bucle1:
+    CALL retraso100ms
+    DECFSZ Contador1, F, B 
+    GOTO bucle1
+    RETURN 
+
+; RETARDO DE 2 SEGUNDOS (2000 ms)
+retraso2s:
+    MOVLW 20         
+    MOVWF Contador12, B
+bucle12:
+    CALL retraso100ms
+    DECFSZ Contador12, F, B 
+    GOTO bucle12
+    RETURN 
+
+; RETARDO DE 100ms (basado en 8MHz)
+retraso100ms:
+    MOVLW 250        
+    MOVWF Contador2, B
+bucle2:
+    MOVLW 250
+    MOVWF Contador3, B
+bucle3:
+    NOP
+    NOP
+    DECFSZ Contador3, F, B
+    GOTO bucle3
+    DECFSZ Contador2, F, B
+    GOTO bucle2
+    RETURN
+
+    END 
+
+
